@@ -5,7 +5,7 @@
  * version indicator, and sign-out confirmation.
  */
 
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Switch,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, CommonActions} from '@react-navigation/native';
@@ -22,6 +23,7 @@ import {useAuth} from '../../context/AuthContext';
 import Config from '../../config';
 import Icon, {IconName} from '../../components/Icon';
 import {Colors, Typography, Spacing, Shadows} from '../../theme/theme';
+import {messageFraudCache} from '../../fraudDetection';
 
 interface SettingsItem {
   id: string;
@@ -32,6 +34,9 @@ interface SettingsItem {
   description?: string;
   onPress: () => void;
   danger?: boolean;
+  isSwitch?: boolean;
+  switchValue?: boolean;
+  onSwitchChange?: (value: boolean) => void;
 }
 
 interface SettingsSection {
@@ -43,6 +48,28 @@ const SettingsScreen: React.FC = () => {
   const {user, logout} = useAuth();
   const navigation =
     useNavigation<NativeStackNavigationProp<SettingsStackParamList>>();
+
+  const [cacheEnabled, setCacheEnabled] = useState<boolean>(true);
+  const [cachedCount, setCachedCount] = useState<number>(0);
+
+  useEffect(() => {
+    setCacheEnabled(messageFraudCache.isEnabled());
+    setCachedCount(messageFraudCache.size());
+  }, []);
+
+  const handleToggleCache = async (val: boolean) => {
+    setCacheEnabled(val);
+    await messageFraudCache.setEnabled(val);
+  };
+
+  const handleClearCache = () => {
+    messageFraudCache.clear();
+    setCachedCount(0);
+    Alert.alert(
+      'Cache Flushed',
+      'All cached message hashes and fraud results have been cleared.',
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -91,6 +118,37 @@ const SettingsScreen: React.FC = () => {
       ],
     },
     {
+      title: 'Developer Options (Fraud Cache)',
+      items: [
+        {
+          id: 'fraud_cache_toggle',
+          icon: 'Clock',
+          iconBg: '#E0F2FE',
+          iconColor: '#0284C7',
+          label: 'Message Cache System',
+          description: cacheEnabled
+            ? 'Active (15m suppression)'
+            : 'Disabled (Forces real-time analysis)',
+          onPress: () => handleToggleCache(!cacheEnabled),
+          isSwitch: true,
+          switchValue: cacheEnabled,
+          onSwitchChange: handleToggleCache,
+        },
+        {
+          id: 'clear_cache',
+          icon: 'Activity',
+          iconBg: '#FEF3C7',
+          iconColor: '#D97706',
+          label: 'Clear Message Cache',
+          description:
+            cachedCount > 0
+              ? `${cachedCount} active cached item(s)`
+              : 'Cache is currently empty',
+          onPress: handleClearCache,
+        },
+      ],
+    },
+    {
       title: 'About Application',
       items: [
         {
@@ -120,6 +178,7 @@ const SettingsScreen: React.FC = () => {
       ],
     },
   ];
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -181,7 +240,14 @@ const SettingsScreen: React.FC = () => {
                     ) : null}
                   </View>
 
-                  {item.id !== 'version' ? (
+                  {item.isSwitch ? (
+                    <Switch
+                      value={item.switchValue}
+                      onValueChange={item.onSwitchChange}
+                      trackColor={{false: Colors.border, true: Colors.primary}}
+                      thumbColor="#FFFFFF"
+                    />
+                  ) : item.id !== 'version' ? (
                     <Icon
                       name="ChevronRight"
                       size={18}

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -31,3 +31,15 @@ class PredictResponse(BaseModel):
     )
     inference_time_ms: float = Field(..., description="Model inference time in milliseconds.")
     model_id: str = Field(..., description="Hugging Face model currently in use.")
+    risk_level: Literal["LEGITIMATE", "SUSPICIOUS", "FRAUD"] = Field(
+        default="LEGITIMATE",
+        description="3-tier classification: LEGITIMATE, SUSPICIOUS (needs review), or FRAUD.",
+    )
+    threshold: float = Field(
+        default=0.75,
+        description="Active fraud classification threshold.",
+    )
+    normalized_text: Optional[str] = Field(
+        default=None,
+        description="Text after context-aware entity normalization.",
+    )

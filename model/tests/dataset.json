@@ -1,0 +1,216 @@
+[
+  {
+    "id": "legit_flipkart_1",
+    "text": "Your Flipkart order has been shipped. Track your package at https://flipkart.com/track/OD9281746281",
+    "label": "LEGITIMATE",
+    "category": "ecommerce_tracking",
+    "has_url": true,
+    "has_merchant": true
+  },
+  {
+    "id": "legit_amazon_1",
+    "text": "Your Amazon package will be delivered today by 5 PM. Delivery OTP is 4821. Give this code to the delivery associate.",
+    "label": "LEGITIMATE",
+    "category": "ecommerce_delivery",
+    "has_otp": true,
+    "has_merchant": true
+  },
+  {
+    "id": "legit_bank_alert_1",
+    "text": "Dear customer, Rs. 1,500.00 debited from A/C XX4012 on 21-Sep-24 via UPI ref 426189. Avail bal: Rs. 24,310. If not done by you, visit netbanking.",
+    "label": "LEGITIMATE",
+    "category": "bank_transaction",
+    "has_amount": true
+  },
+  {
+    "id": "legit_otp_1",
+    "text": "482910 is your secret OTP for login to your account. Valid for 10 mins. Do not share this OTP with anyone, including bank staff.",
+    "label": "LEGITIMATE",
+    "category": "auth_otp",
+    "has_otp": true
+  },
+  {
+    "id": "legit_support_phone_1",
+    "text": "For queries regarding your service request #98214, please contact our 24x7 customer support team at 1800-202-9898.",
+    "label": "LEGITIMATE",
+    "category": "customer_support",
+    "has_phone": true
+  },
+  {
+    "id": "legit_invoice_pdf_1",
+    "text": "Thank you for your purchase. Your tax invoice is attached as invoice_sep2024.pdf. Please keep it for warranty records.",
+    "label": "LEGITIMATE",
+    "category": "invoice_pdf",
+    "has_pdf": true
+  },
+  {
+    "id": "legit_upi_payment_1",
+    "text": "Received Rs. 500.00 from Rahul Sharma via UPI (Ref No 908123412). Check your updated account balance in your bank mobile app.",
+    "label": "LEGITIMATE",
+    "category": "upi_payment",
+    "has_amount": true
+  },
+  {
+    "id": "legit_flipkart_refund_1",
+    "text": "Refund of Rs. 1,299 for your returned item on Flipkart has been initiated. Expect credit in 2-3 business days. Details at https://flipkart.com/help",
+    "label": "LEGITIMATE",
+    "category": "ecommerce_refund",
+    "has_url": true,
+    "has_merchant": true
+  },
+  {
+    "id": "legit_swiggy_delivery_1",
+    "text": "Your Swiggy order from Biryani House is out for delivery! Track your rider live on the Swiggy app or contact him at 9845012345.",
+    "label": "LEGITIMATE",
+    "category": "food_delivery",
+    "has_phone": true,
+    "has_merchant": true
+  },
+  {
+    "id": "legit_salary_credit_1",
+    "text": "Salary of Rs. 65,000 credited to your HDFC Bank account ending in 8891 on 21-Sep-24. Total available balance is Rs. 92,400.",
+    "label": "LEGITIMATE",
+    "category": "bank_salary",
+    "has_amount": true
+  },
+  {
+    "id": "legit_ride_receipt_1",
+    "text": "Thanks for riding with Uber! Your trip fare of Rs. 240 has been paid via Paytm. Invoice available at https://uber.com/receipt/48192",
+    "label": "LEGITIMATE",
+    "category": "ride_receipt",
+    "has_url": true,
+    "has_merchant": true
+  },
+  {
+    "id": "legit_appointment_1",
+    "text": "Hi Rahul, your dental checkup appointment is confirmed for tomorrow at 10:30 AM with Dr. Gupta. Please arrive 10 mins early.",
+    "label": "LEGITIMATE",
+    "category": "personal_appointment"
+  },
+  {
+    "id": "legit_casual_chat_1",
+    "text": "Hey, I'll be reaching home around 7:30 PM. Can you pick up milk on your way back?",
+    "label": "LEGITIMATE",
+    "category": "casual_chat"
+  },
+  {
+    "id": "legit_colleague_1",
+    "text": "Can you please share the Q3 quarterly slide deck when you get a free moment today? Thanks!",
+    "label": "LEGITIMATE",
+    "category": "work_chat"
+  },
+  {
+    "id": "legit_bill_pdf_1",
+    "text": "Your monthly broadband bill for September is generated. Download statement bill_sep.pdf or pay at https://portal.airtel.in",
+    "label": "LEGITIMATE",
+    "category": "telecom_bill",
+    "has_pdf": true,
+    "has_url": true
+  },
+  {
+    "id": "fraud_kyc_1",
+    "text": "Dear customer, your SBI account KYC verification is expired and will be blocked today. Update immediately at http://bit.ly/sbi-kyc-verify",
+    "label": "FRAUD",
+    "category": "kyc_phishing",
+    "has_url": true
+  },
+  {
+    "id": "fraud_account_blocked_1",
+    "text": "URGENT: Your HDFC bank account is suspended due to suspicious activity. Verify credentials now at http://hdfc-security-auth.online to restore access.",
+    "label": "FRAUD",
+    "category": "account_suspension",
+    "has_url": true
+  },
+  {
+    "id": "fraud_delivery_fee_1",
+    "text": "India Post: Your parcel is on hold due to missing address and pending duty of Rs. 25. Pay immediately at http://india-post-pay.cc to avoid return.",
+    "label": "FRAUD",
+    "category": "delivery_fee_scam",
+    "has_url": true
+  },
+  {
+    "id": "fraud_customer_support_scam_1",
+    "text": "SIM DEACTIVATION NOTICE: Your mobile SIM will be permanently blocked within 2 hours due to unverified Aadhaar. Call customer support immediately at +91-9988776655.",
+    "label": "FRAUD",
+    "category": "support_scam",
+    "has_phone": true
+  },
+  {
+    "id": "fraud_payment_request_1",
+    "text": "URGENT: Approve pending payment request of Rs. 25,000 on PhonePe immediately or your bank account will be frozen permanently for non-compliance.",
+    "label": "FRAUD",
+    "category": "coercion_payment",
+    "has_amount": true
+  },
+  {
+    "id": "fraud_lottery_prize_1",
+    "text": "Congratulations! Your mobile number won Rs. 25,00,000 in KBC Lucky Draw 2024. Contact Manager Rana Pratap on WhatsApp +91-9876543210 or claim at http://kbc-winner-2024.com",
+    "label": "FRAUD",
+    "category": "lottery_scam",
+    "has_url": true,
+    "has_phone": true
+  },
+  {
+    "id": "fraud_electricity_cut_1",
+    "text": "Dear consumer, your electricity power will be disconnected tonight at 9:30 PM because your previous month bill was not updated. Immediately contact officer at 8910293847.",
+    "label": "FRAUD",
+    "category": "utility_threat",
+    "has_phone": true
+  },
+  {
+    "id": "fraud_job_scam_1",
+    "text": "Earn Rs. 3,000 to Rs. 8,000 daily by simply liking YouTube videos from home! No experience needed. Join our Telegram channel now: https://t.me/quick-cash-earn",
+    "label": "FRAUD",
+    "category": "job_scam",
+    "has_url": true
+  },
+  {
+    "id": "fraud_tax_refund_1",
+    "text": "Income Tax Department: An outstanding tax refund of Rs. 14,890 has been approved. Submit your bank account and PAN at http://incometax-refund-gov.in to claim.",
+    "label": "FRAUD",
+    "category": "tax_phishing",
+    "has_url": true
+  },
+  {
+    "id": "fraud_pan_card_1",
+    "text": "Dear customer, your bank account has been deactivated as PAN card is not linked. Please update your PAN immediately at http://pan-link-alert.xyz/portal",
+    "label": "FRAUD",
+    "category": "pan_phishing",
+    "has_url": true
+  },
+  {
+    "id": "fraud_credit_card_reward_1",
+    "text": "Your credit card reward points worth Rs. 9,450 are expiring in 24 hours! Redeem cash into your account now: http://reward-redeem-bank.com",
+    "label": "FRAUD",
+    "category": "reward_phishing",
+    "has_url": true
+  },
+  {
+    "id": "fraud_crypto_airdrop_1",
+    "text": "Binance Alert: You have been selected for 0.5 BTC airdrop! Connect your wallet at http://binance-claim-airdrop.net before the distribution closes.",
+    "label": "FRAUD",
+    "category": "crypto_scam",
+    "has_url": true
+  },
+  {
+    "id": "fraud_loan_approved_1",
+    "text": "Pre-approved personal loan of Rs. 5,00,000 without documents! Disbursal within 5 minutes. Transfer processing fee Rs. 999 to claim at http://instant-loans-fast.com",
+    "label": "FRAUD",
+    "category": "loan_scam",
+    "has_url": true
+  },
+  {
+    "id": "fraud_courier_damage_1",
+    "text": "DHL Express: Your international package arrived with incomplete customs clearance. Pay clearance penalty of Rs. 550 at http://dhl-customs-clearance.cc immediately.",
+    "label": "FRAUD",
+    "category": "customs_scam",
+    "has_url": true
+  },
+  {
+    "id": "fraud_device_compromised_1",
+    "text": "SECURITY ALERT: Unauthorized login attempt detected on your bank profile from Russia. If this wasn't you, secure your account at http://secure-banking-alert.com/auth",
+    "label": "FRAUD",
+    "category": "security_imposter",
+    "has_url": true
+  }
+]

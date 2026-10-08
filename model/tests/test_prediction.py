@@ -1,4 +1,4 @@
-from app.config import MAX_TEXT_LENGTH
+from app.config import FRAUD_THRESHOLD, MAX_TEXT_LENGTH
 
 FRAUD_EXAMPLES = [
     "Congratulations! You have won ₹50,000. Click this link immediately to claim your reward.",
@@ -10,6 +10,7 @@ LEGITIMATE_EXAMPLES = [
     "Hi, I'll be home around 7 PM.",
     "Your appointment is confirmed for tomorrow at 10 AM.",
     "Can you send me the project report when you get time?",
+    "Your License KA13 2026007377 handed over to Post Office with tracking no. TA468867850IN. You can track delivery status at https://parivahan.gov.in after 48 hours. MoRTH"
 ]
 
 
@@ -19,6 +20,9 @@ def test_health_reports_loaded_model(client):
     body = response.json()
     assert body["status"] == "ok"
     assert body["model_loaded"] is True
+    assert "VynoDePal" in body["model_id"]
+    assert "fraud_threshold" in body
+    assert "suspicious_threshold" in body
 
 
 def test_missing_text_returns_error(client):
@@ -60,7 +64,8 @@ def test_fraud_examples_are_flagged(client):
         assert 0.0 <= body["fraud_probability"] <= 1.0
         assert "inference_time_ms" in body
         assert body["prediction"] == "FRAUD"
-        assert body["fraud_probability"] >= 0.5
+        assert body["fraud_probability"] >= body["threshold"]
+        assert body["risk_level"] == "FRAUD"
 
 
 def test_legitimate_examples_are_not_flagged(client):
@@ -69,7 +74,8 @@ def test_legitimate_examples_are_not_flagged(client):
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["prediction"] == "NOT_FRAUD"
-        assert body["fraud_probability"] < 0.5
+        assert body["fraud_probability"] < body["threshold"]
+        assert body["risk_level"] in {"LEGITIMATE", "SUSPICIOUS"}
 
 
 def test_predict_response_shape(client):
@@ -87,4 +93,6 @@ def test_predict_response_shape(client):
         "confidence",
         "inference_time_ms",
         "model_id",
+        "risk_level",
+        "threshold",
     }

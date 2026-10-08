@@ -1,0 +1,241 @@
+{
+  "version": "1.0.0",
+  "defaultThreshold": 5,
+  "description": "Configurable fraud keywords, categories, and pattern weights for Stage 1 lightweight local pre-filter.",
+  "urlSignal": {
+    "enabled": true,
+    "weight": 2,
+    "weightInsecureHttp": 4,
+    "weightSuspiciousPattern": 5,
+    "description": "Bonus score applied when an external URL or suspicious/insecure link is present in the message"
+  },
+  "categories": {
+    "prize_reward": {
+      "weight": 3,
+      "description": "Offers of prizes, unexpected rewards, or sweepstakes",
+      "keywords": [
+        "congratulations",
+        "cash prize",
+        "won a prize",
+        "you have won",
+        "lucky winner",
+        "claim your reward",
+        "claim your prize",
+        "exclusive gift",
+        "bumper prize",
+        "selected winner",
+        "free gift"
+      ]
+    },
+    "lottery_winner": {
+      "weight": 3,
+      "description": "Lottery, jackpot, and draw-related scams",
+      "keywords": [
+        "lottery",
+        "jackpot",
+        "lucky draw",
+        "lottery winner",
+        "mega draw",
+        "kbc lottery"
+      ]
+    },
+    "urgent_action": {
+      "weight": 2,
+      "description": "Pressure tactics and false urgency demanding immediate reaction",
+      "keywords": [
+        "act now",
+        "urgent",
+        "urgently",
+        "immediately",
+        "expires today",
+        "last chance",
+        "within 24 hours",
+        "hurry up",
+        "valid only today",
+        "final notice",
+        "time is running out",
+        "immediate action required"
+      ]
+    },
+    "financial_common": {
+      "weight": 1,
+      "description": "Common financial terms with low weight to prevent false positives on normal transactions",
+      "keywords": [
+        "bank",
+        "account",
+        "payment",
+        "transaction",
+        "balance",
+        "credit card",
+        "debit card",
+        "upi",
+        "wallet"
+      ]
+    },
+    "credentials": {
+      "weight": 4,
+      "description": "Sensitive credentials and secret code requests",
+      "keywords": [
+        "otp",
+        "password",
+        "pin",
+        "cvv",
+        "atm pin",
+        "netbanking password",
+        "secret code",
+        "security code"
+      ]
+    },
+    "account_threat": {
+      "weight": 3,
+      "description": "Threats of account suspension, blocking, or service termination",
+      "keywords": [
+        "account blocked",
+        "account suspended",
+        "account will be closed",
+        "account deactivated",
+        "account frozen",
+        "service terminated",
+        "sim blocked",
+        "electricity disconnected",
+        "card blocked",
+        "pan card blocked"
+      ]
+    },
+    "kyc_verification": {
+      "weight": 3,
+      "description": "Demands for urgent KYC, Aadhaar, PAN or identity re-verification",
+      "keywords": [
+        "kyc expired",
+        "kyc pending",
+        "update kyc",
+        "complete kyc",
+        "verify your account",
+        "verify your bank account",
+        "confirm your identity",
+        "pan card update",
+        "link aadhaar",
+        "link pan",
+        "re-activate account",
+        "mandatory kyc"
+      ]
+    },
+    "suspicious_links": {
+      "weight": 2,
+      "description": "Call-to-action click instructions commonly leading to phishing sites",
+      "keywords": [
+        "click here",
+        "click the link",
+        "click this link",
+        "tap here",
+        "claim now",
+        "verify now",
+        "click below",
+        "open link",
+        "download apk",
+        "install app",
+        "visit link"
+      ]
+    },
+    "refund_cashback": {
+      "weight": 3,
+      "description": "Fake refunds, cashback lures, or reward point expirations",
+      "keywords": [
+        "refund approved",
+        "claim cashback",
+        "instant cashback",
+        "tax refund",
+        "reward points expire",
+        "redeem points",
+        "pending refund",
+        "claim your refund"
+      ]
+    },
+    "job_investment_scam": {
+      "weight": 3,
+      "description": "Work from home, daily earnings, or unrealistic investment schemes",
+      "keywords": [
+        "part time job",
+        "work from home",
+        "earn daily",
+        "daily income",
+        "investment scheme",
+        "double your money",
+        "guaranteed profit",
+        "high returns",
+        "earn 5000 daily"
+      ]
+    },
+    "delivery_impersonation": {
+      "weight": 2,
+      "description": "Fake package delivery issues demanding fees or personal info",
+      "keywords": [
+        "parcel detained",
+        "package pending",
+        "customs fee",
+        "unpaid delivery fee",
+        "address incomplete",
+        "failed delivery attempt"
+      ]
+    }
+  },
+  "patterns": [
+    {
+      "name": "bank_verification_urgency",
+      "description": "Urgent bank verification request",
+      "keywords": [
+        "bank",
+        "verify",
+        "immediately"
+      ],
+      "weight": 5
+    },
+    {
+      "name": "account_block_threat_with_link",
+      "description": "Threat of block paired with call-to-action click",
+      "keywords": [
+        "blocked",
+        "click"
+      ],
+      "weight": 4
+    },
+    {
+      "name": "kyc_urgency",
+      "description": "KYC expiration warning demanding verification",
+      "keywords": [
+        "kyc",
+        "expired",
+        "verify"
+      ],
+      "weight": 5
+    },
+    {
+      "name": "prize_claim_urgency",
+      "description": "Prize winning claim with urgency",
+      "keywords": [
+        "won",
+        "claim",
+        "immediately"
+      ],
+      "weight": 4
+    },
+    {
+      "name": "otp_credential_request",
+      "description": "Request to share or enter OTP",
+      "keywords": [
+        "otp",
+        "share"
+      ],
+      "weight": 5
+    },
+    {
+      "name": "electricity_disconnection_threat",
+      "description": "Fake utility or power disconnection scam",
+      "keywords": [
+        "electricity",
+        "disconnected"
+      ],
+      "weight": 5
+    }
+  ]
+}

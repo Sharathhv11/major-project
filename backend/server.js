@@ -38,10 +38,14 @@ app.get("/", (req, res) => {
   });
 });
 
+
+
+
 // ---------------------------------------------------------------------------
 // API routes
 // ---------------------------------------------------------------------------
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/fraud", require("./routes/fraudRoutes"));
 
 // ---------------------------------------------------------------------------
 // 404 handler — catch unmatched routes
@@ -66,5 +70,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`);
   console.log(`📡 API Base URL: http://localhost:${PORT}`);
-  console.log(`🔐 Auth routes:  http://localhost:${PORT}/api/auth\n`);
+  console.log(`🔐 Auth routes:  http://localhost:${PORT}/api/auth`);
+  console.log(`🤖 Fraud routes: http://localhost:${PORT}/api/fraud`);
+  console.log(`🧠 ML Model URL: ${process.env.FRAUD_MODEL_URL || "http://127.0.0.1:8000"}\n`);
 });

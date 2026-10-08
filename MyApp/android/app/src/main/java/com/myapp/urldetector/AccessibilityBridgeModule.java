@@ -132,6 +132,31 @@ public class AccessibilityBridgeModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void isNotificationListenerEnabled(Promise promise) {
+        try {
+            Context context = getReactApplicationContext();
+            String packageName = context.getPackageName();
+            String flat = Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+            boolean enabled = flat != null && flat.contains(packageName);
+            promise.resolve(enabled);
+        } catch (Exception e) {
+            promise.resolve(false);
+        }
+    }
+
+    @ReactMethod
+    public void openNotificationListenerSettings(Promise promise) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getReactApplicationContext().startActivity(intent);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("SETTINGS_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
     public void showFraudOverlay(String title, String explanation, String suspiciousContent, Promise promise) {
         try {
             OverlayManager.getInstance(getReactApplicationContext()).showCustomOverlay(title, explanation, "SUSPICIOUS CONTENT:", suspiciousContent);

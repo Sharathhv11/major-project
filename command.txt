@@ -1,0 +1,17 @@
+backend - 
+cd backend
+npm run dev
+
+
+---------------------------------
+
+react native-
+adb reverse tcp:5000 tcp:5000
+npx react-native run-android
+
+
+model -
+
+
+venv\Scripts\activate
+uvicorn app.main:app --reload --port 8000

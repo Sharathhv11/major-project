@@ -28,6 +28,7 @@ import {
   checkAllServiceStatus,
   openAccessibilitySettings,
   openOverlaySettings,
+  openNotificationListenerSettings,
   ServiceStatus,
 } from '../../utils/accessibilityService';
 
@@ -45,10 +46,10 @@ const HomeScreen: React.FC = () => {
   const {user, logout} = useAuth();
   const navigation = useNavigation();
 
-  // Accessibility & Overlay status
   const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
     accessibilityEnabled: false,
     overlayGranted: false,
+    notificationListenerEnabled: false,
   });
 
   const refreshStatus = useCallback(async () => {
@@ -168,14 +169,16 @@ const HomeScreen: React.FC = () => {
                   <Icon
                     name={
                       serviceStatus.accessibilityEnabled &&
-                      serviceStatus.overlayGranted
+                      serviceStatus.overlayGranted &&
+                      serviceStatus.notificationListenerEnabled
                         ? 'ShieldCheck'
                         : 'Shield'
                     }
                     size={20}
                     color={
                       serviceStatus.accessibilityEnabled &&
-                      serviceStatus.overlayGranted
+                      serviceStatus.overlayGranted &&
+                      serviceStatus.notificationListenerEnabled
                         ? Colors.successDark
                         : Colors.primary
                     }
@@ -183,9 +186,9 @@ const HomeScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{flex: 1}}>
-                  <Text style={styles.cardTitle}>Insecure HTTP Protection</Text>
+                  <Text style={styles.cardTitle}>Real-Time Security Protection</Text>
                   <Text style={styles.cardSubtitle}>
-                    Real-time alert for unencrypted http:// links
+                    Insecure HTTP detection & incoming message fraud shield
                   </Text>
                 </View>
               </View>
@@ -194,7 +197,7 @@ const HomeScreen: React.FC = () => {
             {/* Accessibility Service Status */}
             <View style={styles.serviceRow}>
               <View style={styles.serviceInfoGroup}>
-                <Text style={styles.serviceLabel}>Accessibility Service</Text>
+                <Text style={styles.serviceLabel}>Accessibility Service (URL Detector)</Text>
                 <View style={styles.statusPillRow}>
                   <View
                     style={[
@@ -245,7 +248,7 @@ const HomeScreen: React.FC = () => {
             </View>
 
             {/* Display Over Other Apps Permission */}
-            <View style={[styles.serviceRow, styles.serviceRowLast]}>
+            <View style={styles.serviceRow}>
               <View style={styles.serviceInfoGroup}>
                 <Text style={styles.serviceLabel}>Display Over Other Apps</Text>
                 <View style={styles.statusPillRow}>
@@ -291,6 +294,59 @@ const HomeScreen: React.FC = () => {
                   onPress={openOverlaySettings}
                   size="sm"
                   variant="secondary"
+                  fullWidth={false}
+                  style={styles.actionBtn}
+                />
+              )}
+            </View>
+
+            {/* Message Notification Listener Permission */}
+            <View style={[styles.serviceRow, styles.serviceRowLast]}>
+              <View style={styles.serviceInfoGroup}>
+                <Text style={styles.serviceLabel}>Incoming Message Fraud Shield</Text>
+                <View style={styles.statusPillRow}>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      serviceStatus.notificationListenerEnabled
+                        ? styles.statusPillActive
+                        : styles.statusPillInactive,
+                    ]}>
+                    <Icon
+                      name={
+                        serviceStatus.notificationListenerEnabled
+                          ? 'CheckCircle2'
+                          : 'Clock'
+                      }
+                      size={12}
+                      color={
+                        serviceStatus.notificationListenerEnabled
+                          ? Colors.successDark
+                          : Colors.warningDark
+                      }
+                      style={{marginRight: 4}}
+                    />
+                    <Text
+                      style={[
+                        styles.statusPillText,
+                        serviceStatus.notificationListenerEnabled
+                          ? styles.statusTextActive
+                          : styles.statusTextInactive,
+                      ]}>
+                      {serviceStatus.notificationListenerEnabled
+                        ? 'Active'
+                        : 'Permission Required'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {!serviceStatus.notificationListenerEnabled && (
+                <Button
+                  title="Enable"
+                  onPress={openNotificationListenerSettings}
+                  size="sm"
+                  variant="primary"
                   fullWidth={false}
                   style={styles.actionBtn}
                 />
@@ -430,8 +486,8 @@ const HomeScreen: React.FC = () => {
             <View style={styles.moduleHeaderText}>
               <View style={styles.moduleBadgeRow}>
                 <Text style={styles.moduleTitle}>AI Fraud Engine</Text>
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonBadgeText}>Upcoming</Text>
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>Active</Text>
                 </View>
               </View>
               <Text style={styles.moduleSubtitle}>
@@ -440,8 +496,9 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
           <Text style={styles.moduleDescription}>
-            Transaction monitoring, risk scoring algorithms, and security alerts
-            will be active on this dashboard in the next release.
+            AI-powered fraud detection is active. Messages are analyzed in
+            real-time using our ML model for risk scoring alongside local
+            rule-based detection.
           </Text>
         </View>
       </ScrollView>
@@ -731,6 +788,19 @@ const styles = StyleSheet.create({
     ...Typography.styles.small,
     color: Colors.textTertiary,
     fontWeight: Typography.weights.medium,
+  },
+  activeBadge: {
+    backgroundColor: Colors.successLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Spacing.borderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.successBorder,
+  },
+  activeBadgeText: {
+    ...Typography.styles.small,
+    color: Colors.successDark,
+    fontWeight: Typography.weights.semibold,
   },
   moduleSubtitle: {
     ...Typography.styles.caption,
