@@ -14,6 +14,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
 import java.util.List;
 
@@ -163,6 +164,46 @@ public class AccessibilityBridgeModule extends ReactContextBaseJavaModule {
             promise.resolve(true);
         } catch (Exception e) {
             promise.reject("OVERLAY_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void showFloatingBot(Promise promise) {
+        try {
+            FloatingScannerManager.getInstance(getReactApplicationContext()).showFloatingBot();
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("FLOATING_BOT_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void hideFloatingBot(Promise promise) {
+        try {
+            FloatingScannerManager.getInstance(getReactApplicationContext()).hideFloatingBot();
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("FLOATING_BOT_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void isFloatingBotVisible(Promise promise) {
+        try {
+            boolean visible = FloatingScannerManager.getInstance(getReactApplicationContext()).isFloatingBotVisible();
+            promise.resolve(visible);
+        } catch (Exception e) {
+            promise.resolve(false);
+        }
+    }
+
+    @ReactMethod
+    public void reportManualScanResult(ReadableMap result, Promise promise) {
+        try {
+            FloatingScannerManager.getInstance(getReactApplicationContext()).showScanResult(result);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("RESULT_ERROR", e.getMessage());
         }
     }
 }

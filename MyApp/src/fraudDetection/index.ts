@@ -8,3 +8,4 @@ export * from './messageFraudProcessor';
 export * from './fraudDetector';
 export * from './alertHelper';
 export * from './localFraudFilter';
+export * from './manualScanHandler';

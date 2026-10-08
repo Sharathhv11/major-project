@@ -89,3 +89,47 @@ export const checkAllServiceStatus = async (): Promise<ServiceStatus> => {
   ]);
   return {accessibilityEnabled, overlayGranted, notificationListenerEnabled};
 };
+
+export const showFloatingBot = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.showFloatingBot) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.showFloatingBot();
+  } catch {
+    return false;
+  }
+};
+
+export const hideFloatingBot = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.hideFloatingBot) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.hideFloatingBot();
+  } catch {
+    return false;
+  }
+};
+
+export const isFloatingBotVisible = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.isFloatingBotVisible) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.isFloatingBotVisible();
+  } catch {
+    return false;
+  }
+};
+
+export const reportManualScanResult = async (result: any): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.reportManualScanResult) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.reportManualScanResult(result);
+  } catch {
+    return false;
+  }
+};

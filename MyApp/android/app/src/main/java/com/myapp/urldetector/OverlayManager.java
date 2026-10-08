@@ -30,10 +30,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class OverlayManager {
 
-    // Stay on screen for at least 4 seconds before auto-dismissing
-    private static final long AUTO_DISMISS_DELAY_MS = 4000;
+    // Stay on screen for 3 seconds before auto-dismissing
+    private static final long AUTO_DISMISS_DELAY_MS = 3000;
 
-    // 3 seconds snooze interval after user dismisses an alert (3,000 ms)
+    // 3 seconds minimum interval from one alert to another (3,000 ms)
     public static final long SNOOZE_INTERVAL_MS = 3 * 1000;
 
     private static OverlayManager instance;
@@ -72,22 +72,26 @@ public class OverlayManager {
     }
 
     /**
-     * Checks if a URL or alert is currently snoozed (e.g. user clicked close within 3 seconds).
+     * Checks if a URL or alert is currently snoozed (enforces 3 seconds delay between alerts).
      */
     public boolean isSnoozed(String url) {
         long now = System.currentTimeMillis();
 
-        // Check if an overlay is currently actively showing
+        // If an overlay is currently actively showing, allow transitioning to a new alert
+        // once at least 3 seconds have elapsed since the current one was shown
         if (isOverlayShowing) {
+            if (now - overlayShownTimestamp >= SNOOZE_INTERVAL_MS) {
+                return false;
+            }
             return true;
         }
 
-        // Check global snooze
+        // Check global snooze interval (3 seconds from previous alert)
         if (now < globalSnoozeUntil) {
             return true;
         }
 
-        // Check URL-specific snooze
+        // Check URL-specific snooze (3 seconds)
         if (!TextUtils.isEmpty(url) && snoozedUrls.containsKey(url)) {
             Long snoozedTime = snoozedUrls.get(url);
             if (snoozedTime != null && (now - snoozedTime < SNOOZE_INTERVAL_MS)) {
@@ -425,8 +429,8 @@ public class OverlayManager {
         try {
             mainHandler.removeCallbacks(autoDismissRunnable);
             if (fromAutoDismiss && !TextUtils.isEmpty(currentlyDisplayedUrl)) {
-                // Also snooze for 3 seconds on auto-dismiss so continuous screen text doesn't re-trigger immediately
-                snooze(currentlyDisplayedUrl);
+                // Snooze the specific content for 3 seconds so the identical text doesn't loop
+                snoozedUrls.put(currentlyDisplayedUrl, System.currentTimeMillis());
             }
             if (currentOverlayView != null && windowManager != null) {
                 windowManager.removeView(currentOverlayView);

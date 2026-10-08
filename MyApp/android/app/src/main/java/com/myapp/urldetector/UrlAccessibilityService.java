@@ -15,9 +15,11 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * UrlAccessibilityService
@@ -27,20 +29,33 @@ import java.util.Map;
  * 2. Reads on-screen text messages from active applications (excluding our own app and active keyboard typing)
  *    from BOTTOM to TOP (prioritizing the newest incoming messages at the bottom of WhatsApp/SMS)
  *    and forwards them directly to the React Native bridge for AI fraud score evaluation.
+ * 3. Provides on-demand accessible text extraction for the FraudShield floating manual scanner.
  */
 public class UrlAccessibilityService extends AccessibilityService {
 
     private static final String TAG = "UrlAccessibilityService";
+    private static UrlAccessibilityService sInstance;
 
-    // Duplicate suppression window for URLs
-    private static final long URL_COOLDOWN_MS = 5000;
+    public static UrlAccessibilityService getInstance() {
+        return sInstance;
+    }
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        sInstance = this;
+        Log.i(TAG, "UrlAccessibilityService connected and ready");
+    }
+
+    // Duplicate suppression window for URLs (3 seconds cooldown)
+    private static final long URL_COOLDOWN_MS = 3000;
 
     private String lastDetectedUrl = "";
     private long lastDetectedTimestamp = 0;
 
-    // Cooldown cache for text emitted to the fraud pipeline (10-second deduplication)
+    // Cooldown cache for text emitted to the fraud pipeline (3-second deduplication)
     private static final int MAX_CACHE_SIZE = 50;
-    private static final long TEXT_COOLDOWN_MS = 10000;
+    private static final long TEXT_COOLDOWN_MS = 3000;
 
     private static final Map<String, Long> sSeenTexts =
             Collections.synchronizedMap(new LinkedHashMap<String, Long>(MAX_CACHE_SIZE, 0.75f, true) {
@@ -298,6 +313,64 @@ public class UrlAccessibilityService extends AccessibilityService {
         }
     }
 
+    /**
+     * Extracts currently visible, readable text snippets from the active window
+     * on-demand for manual scanning in the FraudShield floating bot.
+     * Does NOT continuously monitor; only triggered explicitly upon user tap.
+     */
+    public List<String> getVisibleScreenTexts() {
+        List<String> result = new ArrayList<>();
+        try {
+            AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+            if (rootNode == null) {
+                return result;
+            }
+
+            List<NodeTextElement> elements = new ArrayList<>();
+            collectTextElements(rootNode, elements);
+            rootNode.recycle();
+
+            // Sort bottom-to-top so most recent messages / primary content appears first
+            Collections.sort(elements, new Comparator<NodeTextElement>() {
+                @Override
+                public int compare(NodeTextElement a, NodeTextElement b) {
+                    return Integer.compare(b.bottomY, a.bottomY);
+                }
+            });
+
+            Set<String> seen = new HashSet<>();
+            for (NodeTextElement el : elements) {
+                if (el.text != null) {
+                    String trimmed = el.text.trim();
+                    // Ignore single-character symbols or empty text
+                    if (trimmed.length() >= 4 && !seen.contains(trimmed)) {
+                        seen.add(trimmed);
+                        result.add(trimmed);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error extracting screen text for manual scan", e);
+        }
+        return result;
+    }
+
+    /**
+     * Returns the package name of the active foreground window.
+     */
+    public String getActivePackageName() {
+        try {
+            AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+            if (rootNode != null) {
+                CharSequence pkg = rootNode.getPackageName();
+                rootNode.recycle();
+                return pkg != null ? pkg.toString() : "";
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
     @Override
     public void onInterrupt() {
         // No-op
@@ -306,6 +379,7 @@ public class UrlAccessibilityService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        sInstance = null;
         try {
             OverlayManager.getInstance(getApplicationContext()).dismissOverlay();
         } catch (Exception ignored) {

@@ -30,6 +30,9 @@ import {
   openOverlaySettings,
   openNotificationListenerSettings,
   ServiceStatus,
+  showFloatingBot,
+  hideFloatingBot,
+  isFloatingBotVisible,
 } from '../../utils/accessibilityService';
 
 interface QuickAction {
@@ -52,12 +55,38 @@ const HomeScreen: React.FC = () => {
     notificationListenerEnabled: false,
   });
 
+  const [floatingBotActive, setFloatingBotActive] = useState<boolean>(false);
+
   const refreshStatus = useCallback(async () => {
     if (Platform.OS === 'android') {
       const status = await checkAllServiceStatus();
       setServiceStatus(status);
+      const isVisible = await isFloatingBotVisible();
+      setFloatingBotActive(isVisible);
     }
   }, []);
+
+  const handleToggleFloatingBot = async () => {
+    if (!serviceStatus.overlayGranted) {
+      Alert.alert(
+        'Permission Required',
+        'Display Over Other Apps permission is required to display the floating FraudShield bot.',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: 'Grant Permission', onPress: openOverlaySettings},
+        ],
+      );
+      return;
+    }
+
+    if (floatingBotActive) {
+      await hideFloatingBot();
+      setFloatingBotActive(false);
+    } else {
+      await showFloatingBot();
+      setFloatingBotActive(true);
+    }
+  };
 
   useEffect(() => {
     refreshStatus();
@@ -351,6 +380,65 @@ const HomeScreen: React.FC = () => {
                   style={styles.actionBtn}
                 />
               )}
+            </View>
+          </View>
+        )}
+
+        {/* ─── FraudShield Floating On-Screen Bot Card ────────────── */}
+        {Platform.OS === 'android' && (
+          <View style={[styles.card, Shadows.card]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderTitleRow}>
+                <View style={[styles.shieldIconBox, {backgroundColor: '#EFF6FF'}]}>
+                  <Text style={{fontSize: 18}}>🛡️</Text>
+                </View>
+                <View style={{flex: 1}}>
+                  <Text style={styles.cardTitle}>FraudShield Floating Bot</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Manual on-screen scanner. Tap the floating bot anytime over any app to inspect suspicious text.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.serviceRow}>
+              <View style={styles.serviceInfoGroup}>
+                <Text style={styles.serviceLabel}>Floating Assistant Status</Text>
+                <View style={styles.statusPillRow}>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      floatingBotActive
+                        ? styles.statusPillActive
+                        : styles.statusPillInactive,
+                    ]}>
+                    <Icon
+                      name={floatingBotActive ? 'CheckCircle2' : 'Clock'}
+                      size={12}
+                      color={floatingBotActive ? Colors.successDark : Colors.warningDark}
+                      style={{marginRight: 4}}
+                    />
+                    <Text
+                      style={[
+                        styles.statusPillText,
+                        floatingBotActive
+                          ? styles.statusTextActive
+                          : styles.statusTextInactive,
+                      ]}>
+                      {floatingBotActive ? 'Active & Sleeping' : 'Hidden'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <Button
+                title={floatingBotActive ? 'Hide Bot' : 'Launch Bot'}
+                onPress={handleToggleFloatingBot}
+                size="sm"
+                variant={floatingBotActive ? 'secondary' : 'primary'}
+                fullWidth={false}
+                style={styles.actionBtn}
+              />
             </View>
           </View>
         )}

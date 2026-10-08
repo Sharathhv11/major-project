@@ -33,9 +33,9 @@ public class MessageNotificationService extends NotificationListenerService {
 
     private static final String TAG = "MessageNotification";
 
-    // Deduplication window: 15 seconds for identical package + sender + text
+    // Deduplication window: 3 seconds for identical package + sender + text
     private static final int MAX_CACHE_SIZE = 50;
-    private static final long DEDUP_WINDOW_MS = 15000;
+    private static final long DEDUP_WINDOW_MS = 3000;
 
     private static final Map<String, Long> sProcessedMessages =
             Collections.synchronizedMap(new LinkedHashMap<String, Long>(MAX_CACHE_SIZE, 0.75f, true) {

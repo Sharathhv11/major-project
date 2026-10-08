@@ -16,7 +16,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
-import { messageFraudProcessor, messageFraudCache } from './src/fraudDetection';
+import { messageFraudProcessor, messageFraudCache, initManualScanListener } from './src/fraudDetection';
 
 interface IncomingMessagePayload {
   packageName?: string;
@@ -69,7 +69,13 @@ const App: React.FC = () => {
       }
     );
 
-    return () => subscription.remove();
+    // Initialize FraudShield floating bot manual scan listener
+    const cleanupManualScan = initManualScanListener();
+
+    return () => {
+      subscription.remove();
+      cleanupManualScan();
+    };
   }, []);
 
   return (
