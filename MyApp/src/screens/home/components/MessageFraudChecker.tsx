@@ -41,10 +41,12 @@ type CheckerStep =
 
 interface MessageFraudCheckerProps {
   onScanComplete?: (result: MessageCheckResult) => void;
+  initialMode?: 'paste' | 'upload';
 }
 
 export const MessageFraudChecker: React.FC<MessageFraudCheckerProps> = ({
   onScanComplete,
+  initialMode,
 }) => {
   // Input & state
   const [inputText, setInputText] = useState('');
@@ -57,6 +59,14 @@ export const MessageFraudChecker: React.FC<MessageFraudCheckerProps> = ({
   const [ocrError, setOcrError] = useState<string | null>(null);
 
   const textInputRef = useRef<TextInput>(null);
+
+  React.useEffect(() => {
+    if (initialMode === 'upload') {
+      handlePickScreenshot();
+    } else if (initialMode === 'paste') {
+      setTimeout(() => textInputRef.current?.focus(), 300);
+    }
+  }, [initialMode]);
 
   // ─── Screenshot Picking & OCR Extraction ────────────────────────────────────
 

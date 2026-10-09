@@ -1,36 +1,54 @@
 /**
- * App Navigator
+ * App Navigator — FraudShield
  *
- * Polished Bottom Tab Navigator using Lucide icons.
- * Nested stack navigators for Home, Profile, and Settings.
+ * Modern Bottom Tab Navigator configured with core security destinations:
+ * - Home (Dashboard)
+ * - Check (Message & Screenshot Fraud Checker)
+ * - History (Detection Records & Analytics)
+ * - Settings (Security Rules, Cache, App Configuration)
+ *
+ * Follows FraudShield design system:
+ * - Primary accent #3a86ff
+ * - Lucide icons with consistent sizes
+ * - Smooth stack transitions and accessible safe areas
  */
 
 import React from 'react';
-import {StyleSheet, View, Platform} from 'react-native';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { StyleSheet, View, Platform } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/home/HomeScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
-import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import MessageCheckerScreen from '../screens/home/MessageCheckerScreen';
+import DetectionHistoryScreen from '../screens/history/DetectionHistoryScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
-import {Colors, Typography, Spacing, Shadows} from '../theme/theme';
-import Icon, {IconName} from '../components/Icon';
-import MessageCheckerScreen from '../screens/home/MessageCheckerScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import { Colors, Typography, Spacing, Shadows } from '../theme/theme';
+import Icon, { IconName } from '../components/Icon';
+
+const PRIMARY_COLOR = '#3a86ff';
 
 export type HomeStackParamList = {
   HomeMain: undefined;
-  MessageChecker: undefined;
+  MessageChecker?: { initialMode?: 'paste' | 'upload' };
+  DetectionHistory: undefined;
+  Profile: undefined;
 };
 
-export type ProfileStackParamList = {
-  ProfileMain: undefined;
-  EditProfile: undefined;
+export type CheckStackParamList = {
+  CheckMain?: { initialMode?: 'paste' | 'upload' };
+};
+
+export type HistoryStackParamList = {
+  HistoryMain: undefined;
 };
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
   ChangePassword: undefined;
+  Profile: undefined;
+  EditProfile: undefined;
 };
 
 // ─── Tab Icon Component ─────────────────────────────────────────────────────
@@ -40,12 +58,12 @@ interface TabIconProps {
   focused: boolean;
 }
 
-const TabBarIcon: React.FC<TabIconProps> = ({name, focused}) => (
+const TabBarIcon: React.FC<TabIconProps> = ({ name, focused }) => (
   <View style={[styles.iconWrapper, focused && styles.iconWrapperFocused]}>
     <Icon
       name={name}
-      size={22}
-      color={focused ? Colors.primary : Colors.textTertiary}
+      size={21}
+      color={focused ? PRIMARY_COLOR : '#94A3B8'}
       strokeWidth={focused ? 2.5 : 2}
     />
   </View>
@@ -55,19 +73,19 @@ const TabBarIcon: React.FC<TabIconProps> = ({name, focused}) => (
 
 const stackScreenOptions = {
   headerStyle: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
   },
-  headerTintColor: Colors.textPrimary,
+  headerTintColor: '#0F172A',
   headerTitleStyle: {
     ...Typography.styles.bodySemibold,
-    color: Colors.textPrimary,
+    color: '#0F172A',
   },
   headerShadowVisible: false,
-  contentStyle: {backgroundColor: Colors.background},
+  contentStyle: { backgroundColor: Colors.background },
   animation: 'slide_from_right' as const,
 };
 
-// ─── Home Stack ─────────────────────────────────────────────────────────────
+// ─── 1. Home Stack ──────────────────────────────────────────────────────────
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -76,36 +94,55 @@ const HomeStackScreen: React.FC = () => (
     <HomeStack.Screen
       name="HomeMain"
       component={HomeScreen}
-      options={{headerShown: false}}
+      options={{ headerShown: false }}
     />
     <HomeStack.Screen
       name="MessageChecker"
       component={MessageCheckerScreen}
-      options={{title: 'Message Fraud Checker', headerBackTitle: 'Home'}}
+      options={{ title: 'Check Message', headerBackTitle: 'Home' }}
+    />
+    <HomeStack.Screen
+      name="DetectionHistory"
+      component={DetectionHistoryScreen}
+      options={{ title: 'Detection History', headerBackTitle: 'Home' }}
+    />
+    <HomeStack.Screen
+      name="Profile"
+      component={ProfileScreen}
+      options={{ title: 'My Profile', headerBackTitle: 'Home' }}
     />
   </HomeStack.Navigator>
 );
 
-// ─── Profile Stack ──────────────────────────────────────────────────────────
+// ─── 2. Check Stack ─────────────────────────────────────────────────────────
 
-const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const CheckStack = createNativeStackNavigator<CheckStackParamList>();
 
-const ProfileStackScreen: React.FC = () => (
-  <ProfileStack.Navigator screenOptions={stackScreenOptions}>
-    <ProfileStack.Screen
-      name="ProfileMain"
-      component={ProfileScreen}
-      options={{headerShown: false}}
+const CheckStackScreen: React.FC = () => (
+  <CheckStack.Navigator screenOptions={stackScreenOptions}>
+    <CheckStack.Screen
+      name="CheckMain"
+      component={MessageCheckerScreen}
+      options={{ title: 'Fraud Checker', headerShown: false }}
     />
-    <ProfileStack.Screen
-      name="EditProfile"
-      component={EditProfileScreen}
-      options={{title: 'Edit Profile', headerBackTitle: 'Profile'}}
-    />
-  </ProfileStack.Navigator>
+  </CheckStack.Navigator>
 );
 
-// ─── Settings Stack ─────────────────────────────────────────────────────────
+// ─── 3. History Stack ───────────────────────────────────────────────────────
+
+const HistoryStack = createNativeStackNavigator<HistoryStackParamList>();
+
+const HistoryStackScreen: React.FC = () => (
+  <HistoryStack.Navigator screenOptions={stackScreenOptions}>
+    <HistoryStack.Screen
+      name="HistoryMain"
+      component={DetectionHistoryScreen}
+      options={{ title: 'Detection History', headerShown: false }}
+    />
+  </HistoryStack.Navigator>
+);
+
+// ─── 4. Settings Stack ──────────────────────────────────────────────────────
 
 const SettingsStack = createNativeStackNavigator<SettingsStackParamList>();
 
@@ -114,12 +151,22 @@ const SettingsStackScreen: React.FC = () => (
     <SettingsStack.Screen
       name="SettingsMain"
       component={SettingsScreen}
-      options={{headerShown: false}}
+      options={{ headerShown: false }}
     />
     <SettingsStack.Screen
       name="ChangePassword"
       component={ChangePasswordScreen}
-      options={{title: 'Change Password', headerBackTitle: 'Settings'}}
+      options={{ title: 'Change Password', headerBackTitle: 'Settings' }}
+    />
+    <SettingsStack.Screen
+      name="Profile"
+      component={ProfileScreen}
+      options={{ title: 'Profile', headerBackTitle: 'Settings' }}
+    />
+    <SettingsStack.Screen
+      name="EditProfile"
+      component={EditProfileScreen}
+      options={{ title: 'Edit Profile', headerBackTitle: 'Profile' }}
     />
   </SettingsStack.Navigator>
 );
@@ -128,14 +175,14 @@ const SettingsStackScreen: React.FC = () => (
 
 const Tab = createBottomTabNavigator();
 
-const AppNavigator: React.FC = () => {
+export const AppNavigator: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarActiveTintColor: PRIMARY_COLOR,
+        tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarHideOnKeyboard: true,
       }}>
@@ -144,18 +191,28 @@ const AppNavigator: React.FC = () => {
         component={HomeStackScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({focused}) => (
+          tabBarIcon: ({ focused }) => (
             <TabBarIcon name="Home" focused={focused} />
           ),
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileStackScreen}
+        name="Check"
+        component={CheckStackScreen}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({focused}) => (
-            <TabBarIcon name="User" focused={focused} />
+          tabBarLabel: 'Check',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon name="Search" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryStackScreen}
+        options={{
+          tabBarLabel: 'History',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon name="Clock" focused={focused} />
           ),
         }}
       />
@@ -164,7 +221,7 @@ const AppNavigator: React.FC = () => {
         component={SettingsStackScreen}
         options={{
           tabBarLabel: 'Settings',
-          tabBarIcon: ({focused}) => (
+          tabBarIcon: ({ focused }) => (
             <TabBarIcon name="Settings" focused={focused} />
           ),
         }}
@@ -175,8 +232,8 @@ const AppNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.surface,
-    borderTopColor: Colors.border,
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E2E8F0',
     borderTopWidth: 1,
     paddingTop: Spacing.xs,
     paddingBottom: Platform.OS === 'ios' ? Spacing.lg : Spacing.sm,
@@ -187,15 +244,16 @@ const styles = StyleSheet.create({
     ...Typography.styles.small,
     fontWeight: Typography.weights.medium,
     marginTop: 2,
+    fontSize: 11,
   },
   iconWrapper: {
     padding: 4,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconWrapperFocused: {
-    backgroundColor: Colors.primaryFaded,
+    backgroundColor: '#EFF6FF',
   },
 });
 

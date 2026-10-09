@@ -16,6 +16,7 @@ import { normalizeText, localFraudFilter, LocalFraudFilterResult } from './local
 import { generateMessageHash } from './cache/hashUtils';
 import { messageFraudCache } from './cache/messageFraudCache';
 import fraudApi, { FraudAnalysisResponse } from '../api/fraudApi';
+import { addDetectionRecord } from '../storage/detectionHistoryStorage';
 
 export type RiskAssessmentState = 'POTENTIAL_FRAUD' | 'LIKELY_SAFE' | 'ERROR';
 
@@ -202,6 +203,19 @@ export async function checkMessageForFraud(rawText: string): Promise<MessageChec
   const scorePercentage = Math.round(riskScore * 100);
 
   const reasons = extractSupportedReasons(localFilterResult, riskScore, isFraud);
+
+  // Persist record to detection history
+  addDetectionRecord({
+    preview: trimmedText.length > 80 ? trimmedText.substring(0, 80) + '...' : trimmedText,
+    source: 'MANUAL_CHECK',
+    riskScore,
+    classification: isFraud ? 'FRAUD' : 'NOT_FRAUD',
+    isFraud,
+    reasons,
+    timestamp: Date.now(),
+  }).catch((err) => {
+    console.warn('[FraudShield Checker] Failed to save detection record:', err);
+  });
 
   if (isFraud) {
     return {

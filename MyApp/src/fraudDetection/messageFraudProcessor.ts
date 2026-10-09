@@ -37,6 +37,7 @@ import {
   localFraudFilter,
   LocalFraudFilterResult,
 } from './localFraudFilter';
+import { addDetectionRecord } from '../storage/detectionHistoryStorage';
 
 const { AccessibilityBridgeModule } = NativeModules;
 
@@ -219,6 +220,20 @@ export class MessageFraudProcessor {
         await this.triggerAlert(trimmedText, riskScore, classification, effectiveThreshold, options);
         alertShown = true;
       }
+
+      // Record detection in persistent history
+      addDetectionRecord({
+        preview: trimmedText.length > 80 ? trimmedText.substring(0, 80) + '...' : trimmedText,
+        source: (options.source as any) || 'SMS',
+        sender: options.sender,
+        riskScore,
+        classification,
+        isFraud: isFraudulent,
+        reasons: localFilterResult?.reasons,
+        timestamp: Date.now(),
+      }).catch((err) => {
+        console.warn('Failed to record detection in history:', err);
+      });
 
       return {
         status: isFraudulent ? 'PROCESSED_FRAUD' : 'PROCESSED_LEGITIMATE',

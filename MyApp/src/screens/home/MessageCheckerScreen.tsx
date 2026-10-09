@@ -10,7 +10,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MessageFraudChecker from './components/MessageFraudChecker';
 import { Colors, Spacing } from '../../theme/theme';
 
-export const MessageCheckerScreen: React.FC = () => {
+interface MessageCheckerScreenProps {
+  route?: {
+    params?: {
+      initialMode?: 'paste' | 'upload';
+    };
+  };
+}
+
+export const MessageCheckerScreen: React.FC<MessageCheckerScreenProps> = ({ route }) => {
+  const initialMode = route?.params?.initialMode;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -20,7 +30,7 @@ export const MessageCheckerScreen: React.FC = () => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <MessageFraudChecker />
+          <MessageFraudChecker initialMode={initialMode} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
