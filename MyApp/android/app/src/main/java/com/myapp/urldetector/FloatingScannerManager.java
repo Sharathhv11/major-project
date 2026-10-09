@@ -1,6 +1,10 @@
 package com.myapp.urldetector;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
@@ -15,7 +19,9 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -35,16 +41,31 @@ import java.util.List;
  * FloatingScannerManager
  *
  * Implements the on-screen FraudShield floating bot / manual fraud scanner:
- * - Floating sleeping button: Unobtrusive, draggable, positioned on screen.
+ * - Fully draggable across the screen in both X and Y directions.
+ * - Snaps smoothly to nearest left or right screen edge upon release.
+ * - Docks with 50% partial visibility (EDGE_VISIBLE_PERCENTAGE = 0.50f).
+ * - Dims opacity when docked (DOCKED_ALPHA = 0.65f), restores to 1.0f on interaction.
+ * - Distinguishes dragging from tapping cleanly using Android touch slop.
+ * - Preserves vertical Y position on docking and persists state in SharedPreferences.
+ * - Handles screen rotation, safe areas (status bar, navigation bar), and different DPIs.
  * - Awake / Selecting mode: Scans current screen on-demand via UrlAccessibilityService.
- * - Selection UI: Allows the user to choose which message/text to verify.
- * - Analysis: Forwards selected text through the unified fraud pipeline.
- * - Result & Sleep: Displays risk score, waits 3 seconds (MANUAL_SCAN_SLEEP_DELAY), then sleeps.
+ * - Common fraud pipeline routing and 3-second auto-sleep behavior.
  */
 public class FloatingScannerManager {
 
     private static final String TAG = "FraudShield Helper";
     public static final long MANUAL_SCAN_SLEEP_DELAY_MS = 3000;
+
+    // Edge docking & visibility constants
+    private static final float EDGE_VISIBLE_PERCENTAGE = 0.50f; // 50% visible when docked
+    private static final float DOCKED_ALPHA = 0.65f;            // Dimmed opacity when docked
+    private static final float ACTIVE_ALPHA = 1.0f;            // Full opacity when active/dragging
+    private static final long SNAP_ANIMATION_DURATION_MS = 220; // Smooth snap duration in ms
+
+    // Persistence constants
+    private static final String PREFS_NAME = "fraudshield_floating_bot_prefs";
+    private static final String KEY_DOCKED_EDGE = "docked_edge";
+    private static final String KEY_Y_RATIO = "vertical_y_ratio";
 
     public enum State {
         SLEEPING,
@@ -52,6 +73,11 @@ public class FloatingScannerManager {
         SELECTING,
         ANALYZING,
         RESULT
+    }
+
+    public enum DockEdge {
+        LEFT,
+        RIGHT
     }
 
     private static FloatingScannerManager sInstance;
@@ -63,6 +89,13 @@ public class FloatingScannerManager {
     private View mFloatingButtonView;
     private WindowManager.LayoutParams mFloatingParams;
     private boolean mIsFloatingButtonVisible = false;
+
+    private int mButtonSizePx;
+    private float mDensity;
+    private DockEdge mCurrentDockEdge = DockEdge.RIGHT;
+    private boolean mIsDocked = true;
+    private float mSavedYRatio = 0.5f; // Vertical center default
+    private ValueAnimator mSnapAnimator;
 
     private View mExpandedOverlayView;
     private boolean mIsExpandedOverlayVisible = false;
@@ -83,6 +116,12 @@ public class FloatingScannerManager {
         mContext = context.getApplicationContext();
         mWindowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
         mMainHandler = new Handler(Looper.getMainLooper());
+
+        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+        mDensity = dm.density;
+        mButtonSizePx = (int) (56 * mDensity);
+
+        loadPositionPreference();
     }
 
     public static synchronized FloatingScannerManager getInstance(Context context) {
@@ -98,6 +137,67 @@ public class FloatingScannerManager {
 
     public boolean isFloatingBotVisible() {
         return mIsFloatingButtonVisible;
+    }
+
+    private void loadPositionPreference() {
+        try {
+            SharedPreferences prefs = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String edgeStr = prefs.getString(KEY_DOCKED_EDGE, "RIGHT");
+            mCurrentDockEdge = "LEFT".equals(edgeStr) ? DockEdge.LEFT : DockEdge.RIGHT;
+            mSavedYRatio = prefs.getFloat(KEY_Y_RATIO, 0.5f);
+        } catch (Exception ignored) {
+            mCurrentDockEdge = DockEdge.RIGHT;
+            mSavedYRatio = 0.5f;
+        }
+    }
+
+    private void savePositionPreference() {
+        try {
+            int screenH = getScreenHeight();
+            if (screenH > 0 && mFloatingParams != null) {
+                mSavedYRatio = (float) mFloatingParams.y / (float) screenH;
+            }
+            SharedPreferences prefs = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            prefs.edit()
+                .putString(KEY_DOCKED_EDGE, mCurrentDockEdge.name())
+                .putFloat(KEY_Y_RATIO, mSavedYRatio)
+                .apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private int getScreenWidth() {
+        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+        return dm.widthPixels;
+    }
+
+    private int getScreenHeight() {
+        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+        return dm.heightPixels;
+    }
+
+    private int getStatusBarHeight() {
+        int resourceId = mContext.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            return mContext.getResources().getDimensionPixelSize(resourceId);
+        }
+        return (int) (24 * mDensity);
+    }
+
+    private int getNavigationBarHeight() {
+        int resourceId = mContext.getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            return mContext.getResources().getDimensionPixelSize(resourceId);
+        }
+        return (int) (48 * mDensity);
+    }
+
+    private int getSafeMinY() {
+        return getStatusBarHeight() + (int) (8 * mDensity);
+    }
+
+    private int getSafeMaxY() {
+        return getScreenHeight() - getNavigationBarHeight() - mButtonSizePx - (int) (8 * mDensity);
     }
 
     /**
@@ -120,7 +220,9 @@ public class FloatingScannerManager {
                         mWindowManager.addView(mFloatingButtonView, mFloatingParams);
                         mIsFloatingButtonVisible = true;
                         mCurrentState = State.SLEEPING;
-                        Log.i(TAG, "Bot opened (sleeping state)");
+                        mIsDocked = true;
+                        snapToEdge(false);
+                        Log.i(TAG, "Bot opened (sleeping, edge-docked state)");
                     } catch (Exception e) {
                         Log.e(TAG, "Error adding floating bot view", e);
                     }
@@ -137,6 +239,9 @@ public class FloatingScannerManager {
             @Override
             public void run() {
                 dismissExpandedOverlay();
+                if (mSnapAnimator != null && mSnapAnimator.isRunning()) {
+                    mSnapAnimator.cancel();
+                }
                 if (mIsFloatingButtonVisible && mFloatingButtonView != null) {
                     try {
                         mWindowManager.removeView(mFloatingButtonView);
@@ -150,19 +255,16 @@ public class FloatingScannerManager {
     }
 
     /**
-     * Creates the small, draggable floating button.
+     * Creates the small, fully draggable floating button with edge-docking support.
      */
     private void createFloatingButtonView() {
-        float density = mContext.getResources().getDisplayMetrics().density;
-        int sizePx = (int) (56 * density);
-
         FrameLayout buttonLayout = new FrameLayout(mContext);
 
         // Circular background with vibrant shield border
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(Color.parseColor("#0F172A")); // Dark slate navy
-        bg.setStroke((int) (2.5f * density), Color.parseColor("#3B82F6")); // Blue border
+        bg.setStroke((int) (2.5f * mDensity), Color.parseColor("#3B82F6")); // Blue border
         buttonLayout.setBackground(bg);
 
         // Center Icon & Badge
@@ -192,7 +294,7 @@ public class FloatingScannerManager {
         buttonLayout.addView(content, contentParams);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            buttonLayout.setElevation(12 * density);
+            buttonLayout.setElevation(12 * mDensity);
         }
 
         // Layout parameters
@@ -204,53 +306,99 @@ public class FloatingScannerManager {
         }
 
         mFloatingParams = new WindowManager.LayoutParams(
-            sizePx,
-            sizePx,
+            mButtonSizePx,
+            mButtonSizePx,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         );
 
-        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
         mFloatingParams.gravity = Gravity.TOP | Gravity.START;
-        mFloatingParams.x = dm.widthPixels - sizePx - (int) (16 * density);
-        mFloatingParams.y = dm.heightPixels / 2 - (sizePx / 2);
 
-        // Draggable touch listener with tap detection
+        // Calculate initial docked position based on saved edge and Y ratio
+        int screenW = getScreenWidth();
+        int screenH = getScreenHeight();
+        int safeY = Math.max(getSafeMinY(), Math.min((int) (screenH * mSavedYRatio), getSafeMaxY()));
+        mFloatingParams.y = safeY;
+
+        if (mCurrentDockEdge == DockEdge.LEFT) {
+            mFloatingParams.x = - (int) (mButtonSizePx * (1.0f - EDGE_VISIBLE_PERCENTAGE));
+        } else {
+            mFloatingParams.x = screenW - (int) (mButtonSizePx * EDGE_VISIBLE_PERCENTAGE);
+        }
+
+        buttonLayout.setAlpha(DOCKED_ALPHA);
+        mIsDocked = true;
+
+        // Free full-screen dragging touch listener with edge docking & tap detection
+        final int touchSlop = ViewConfiguration.get(mContext).getScaledTouchSlop();
+
         buttonLayout.setOnTouchListener(new View.OnTouchListener() {
             private int initialX;
             private int initialY;
             private float initialTouchX;
             private float initialTouchY;
+            private boolean isDragging = false;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        if (mSnapAnimator != null && mSnapAnimator.isRunning()) {
+                            mSnapAnimator.cancel();
+                        }
                         initialX = mFloatingParams.x;
                         initialY = mFloatingParams.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
+                        isDragging = false;
+
+                        // Restore full opacity on touch
+                        if (mFloatingButtonView != null) {
+                            mFloatingButtonView.setAlpha(ACTIVE_ALPHA);
+                        }
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
-                        mFloatingParams.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        mFloatingParams.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        try {
-                            if (mIsFloatingButtonVisible && mFloatingButtonView != null) {
-                                mWindowManager.updateViewLayout(mFloatingButtonView, mFloatingParams);
+                        float deltaX = event.getRawX() - initialTouchX;
+                        float deltaY = event.getRawY() - initialTouchY;
+
+                        if (!isDragging) {
+                            // Check if movement exceeds touch slop threshold
+                            if (Math.hypot(deltaX, deltaY) > touchSlop) {
+                                isDragging = true;
+                                mIsDocked = false;
                             }
-                        } catch (Exception ignored) {
+                        }
+
+                        if (isDragging) {
+                            int screenWidth = getScreenWidth();
+                            int rawNewX = initialX + (int) deltaX;
+                            int rawNewY = initialY + (int) deltaY;
+
+                            // Allow free dragging in all directions (X, Y, diagonally)
+                            // During drag, constrain inside visible screen bounds
+                            int clampedX = Math.max(0, Math.min(rawNewX, screenWidth - mButtonSizePx));
+                            int clampedY = Math.max(getSafeMinY(), Math.min(rawNewY, getSafeMaxY()));
+
+                            mFloatingParams.x = clampedX;
+                            mFloatingParams.y = clampedY;
+                            updateFloatingViewLayout();
                         }
                         return true;
 
                     case MotionEvent.ACTION_UP:
-                        float diffX = Math.abs(event.getRawX() - initialTouchX);
-                        float diffY = Math.abs(event.getRawY() - initialTouchY);
-                        // Click threshold (touch slop)
-                        if (diffX < 12 && diffY < 12) {
-                            onFloatingBotTapped();
+                        if (!isDragging) {
+                            // Tap gesture detected!
+                            if (mIsDocked) {
+                                restoreFromDockedAndWake();
+                            } else {
+                                onFloatingBotTapped();
+                            }
+                        } else {
+                            // Drag gesture ended: Snap smoothly to closest horizontal edge
+                            snapToEdge(true);
                         }
                         return true;
                 }
@@ -258,7 +406,156 @@ public class FloatingScannerManager {
             }
         });
 
+        // Handle screen rotation / orientation changes gracefully
+        buttonLayout.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            private int mLastWidth = 0;
+            private int mLastHeight = 0;
+
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                int currentW = getScreenWidth();
+                int currentH = getScreenHeight();
+                if (mLastWidth != currentW || mLastHeight != currentH) {
+                    mLastWidth = currentW;
+                    mLastHeight = currentH;
+                    if (mIsDocked && mIsFloatingButtonVisible) {
+                        snapToEdge(false);
+                    }
+                }
+            }
+        });
+
         mFloatingButtonView = buttonLayout;
+    }
+
+    private void updateFloatingViewLayout() {
+        if (mIsFloatingButtonVisible && mFloatingButtonView != null && mFloatingParams != null) {
+            try {
+                mWindowManager.updateViewLayout(mFloatingButtonView, mFloatingParams);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    /**
+     * Smoothly animates the floating button to snap to the nearest horizontal edge (left or right),
+     * preserves the user's vertical Y position, docks 50% outside screen, and dims opacity.
+     */
+    private void snapToEdge(final boolean animate) {
+        if (mFloatingButtonView == null || !mIsFloatingButtonVisible || mFloatingParams == null) {
+            return;
+        }
+
+        if (mSnapAnimator != null && mSnapAnimator.isRunning()) {
+            mSnapAnimator.cancel();
+        }
+
+        int screenW = getScreenWidth();
+        int currentCenterX = mFloatingParams.x + (mButtonSizePx / 2);
+        int screenCenterX = screenW / 2;
+
+        final DockEdge targetEdge = (currentCenterX < screenCenterX) ? DockEdge.LEFT : DockEdge.RIGHT;
+        mCurrentDockEdge = targetEdge;
+
+        final int startX = mFloatingParams.x;
+        final int targetX = (targetEdge == DockEdge.LEFT)
+            ? - (int) (mButtonSizePx * (1.0f - EDGE_VISIBLE_PERCENTAGE))
+            : screenW - (int) (mButtonSizePx * EDGE_VISIBLE_PERCENTAGE);
+
+        final float startAlpha = mFloatingButtonView.getAlpha();
+        final float targetAlpha = DOCKED_ALPHA;
+
+        // Ensure vertical Y coordinate is safely clamped within screen bounds
+        int safeY = Math.max(getSafeMinY(), Math.min(mFloatingParams.y, getSafeMaxY()));
+        mFloatingParams.y = safeY;
+
+        if (!animate) {
+            mFloatingParams.x = targetX;
+            mFloatingButtonView.setAlpha(targetAlpha);
+            mIsDocked = true;
+            updateFloatingViewLayout();
+            savePositionPreference();
+            return;
+        }
+
+        mSnapAnimator = ValueAnimator.ofFloat(0f, 1f);
+        mSnapAnimator.setDuration(SNAP_ANIMATION_DURATION_MS);
+        mSnapAnimator.setInterpolator(new DecelerateInterpolator());
+        mSnapAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float fraction = animation.getAnimatedFraction();
+                mFloatingParams.x = (int) (startX + (targetX - startX) * fraction);
+                if (mFloatingButtonView != null) {
+                    mFloatingButtonView.setAlpha(startAlpha + (targetAlpha - startAlpha) * fraction);
+                }
+                updateFloatingViewLayout();
+            }
+        });
+        mSnapAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mFloatingParams.x = targetX;
+                if (mFloatingButtonView != null) {
+                    mFloatingButtonView.setAlpha(targetAlpha);
+                }
+                mIsDocked = true;
+                updateFloatingViewLayout();
+                savePositionPreference();
+                mSnapAnimator = null;
+            }
+        });
+        mSnapAnimator.start();
+    }
+
+    /**
+     * When user taps a docked button, smoothly slides it fully onto screen and restores full opacity
+     * before opening the manual scanner interface.
+     */
+    private void restoreFromDockedAndWake() {
+        if (mSnapAnimator != null && mSnapAnimator.isRunning()) {
+            mSnapAnimator.cancel();
+        }
+
+        int screenW = getScreenWidth();
+        int paddingPx = (int) (12 * mDensity);
+
+        final int startX = mFloatingParams.x;
+        final int targetX = (mCurrentDockEdge == DockEdge.LEFT)
+            ? paddingPx
+            : screenW - mButtonSizePx - paddingPx;
+
+        final float startAlpha = mFloatingButtonView.getAlpha();
+        final float targetAlpha = ACTIVE_ALPHA;
+
+        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(160);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float fraction = animation.getAnimatedFraction();
+                mFloatingParams.x = (int) (startX + (targetX - startX) * fraction);
+                if (mFloatingButtonView != null) {
+                    mFloatingButtonView.setAlpha(startAlpha + (targetAlpha - startAlpha) * fraction);
+                }
+                updateFloatingViewLayout();
+            }
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mFloatingParams.x = targetX;
+                if (mFloatingButtonView != null) {
+                    mFloatingButtonView.setAlpha(ACTIVE_ALPHA);
+                }
+                mIsDocked = false;
+                updateFloatingViewLayout();
+                onFloatingBotTapped();
+            }
+        });
+        animator.start();
     }
 
     /**
@@ -292,12 +589,11 @@ public class FloatingScannerManager {
     private void showSelectionOverlay() {
         dismissExpandedOverlay();
 
-        float density = mContext.getResources().getDisplayMetrics().density;
-        int p20 = (int) (20 * density);
-        int p16 = (int) (16 * density);
-        int p12 = (int) (12 * density);
-        int p8 = (int) (8 * density);
-        int p4 = (int) (4 * density);
+        int p20 = (int) (20 * mDensity);
+        int p16 = (int) (16 * mDensity);
+        int p12 = (int) (12 * mDensity);
+        int p8 = (int) (8 * mDensity);
+        int p4 = (int) (4 * mDensity);
 
         // 1. Full-screen scrim backdrop
         FrameLayout backdrop = new FrameLayout(mContext);
@@ -312,8 +608,8 @@ public class FloatingScannerManager {
 
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Color.parseColor("#FFFFFF"));
-        cardBg.setCornerRadius(18 * density);
-        cardBg.setStroke((int) (1.5f * density), Color.parseColor("#E2E8F0"));
+        cardBg.setCornerRadius(18 * mDensity);
+        cardBg.setStroke((int) (1.5f * mDensity), Color.parseColor("#E2E8F0"));
         card.setBackground(cardBg);
 
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
@@ -387,8 +683,8 @@ public class FloatingScannerManager {
 
         final GradientDrawable previewBg = new GradientDrawable();
         previewBg.setColor(Color.parseColor("#F8FAFC"));
-        previewBg.setCornerRadius(8 * density);
-        previewBg.setStroke((int) (1 * density), Color.parseColor("#CBD5E1"));
+        previewBg.setCornerRadius(8 * mDensity);
+        previewBg.setStroke((int) (1 * mDensity), Color.parseColor("#CBD5E1"));
         previewBox.setBackground(previewBg);
 
         final TextView previewLabel = new TextView(mContext);
@@ -421,11 +717,11 @@ public class FloatingScannerManager {
         scanBtn.setTextSize(14);
         scanBtn.setTypeface(Typeface.DEFAULT_BOLD);
         scanBtn.setGravity(Gravity.CENTER);
-        scanBtn.setPadding(p16, (int) (13 * density), p16, (int) (13 * density));
+        scanBtn.setPadding(p16, (int) (13 * mDensity), p16, (int) (13 * mDensity));
 
         final GradientDrawable btnBg = new GradientDrawable();
         btnBg.setColor(Color.parseColor("#94A3B8")); // Disabled gray
-        btnBg.setCornerRadius(10 * density);
+        btnBg.setCornerRadius(10 * mDensity);
         scanBtn.setBackground(btnBg);
         scanBtn.setEnabled(false);
 
@@ -442,7 +738,7 @@ public class FloatingScannerManager {
             ScrollView scrollView = new ScrollView(mContext);
             LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                (int) (180 * density)
+                (int) (180 * mDensity)
             );
             scrollParams.bottomMargin = p12;
             scrollView.setLayoutParams(scrollParams);
@@ -461,8 +757,8 @@ public class FloatingScannerManager {
 
                 final GradientDrawable itemBg = new GradientDrawable();
                 itemBg.setColor(Color.parseColor("#FFFFFF"));
-                itemBg.setCornerRadius(8 * density);
-                itemBg.setStroke((int) (1 * density), Color.parseColor("#E2E8F0"));
+                itemBg.setCornerRadius(8 * mDensity);
+                itemBg.setStroke((int) (1 * mDensity), Color.parseColor("#E2E8F0"));
                 itemLayout.setBackground(itemBg);
 
                 LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
@@ -490,16 +786,16 @@ public class FloatingScannerManager {
                         previewText.setText(mSelectedText);
                         previewText.setTextColor(Color.parseColor("#0F172A"));
                         previewBg.setColor(Color.parseColor("#EFF6FF"));
-                        previewBg.setStroke((int) (1.5f * density), Color.parseColor("#3B82F6"));
+                        previewBg.setStroke((int) (1.5f * mDensity), Color.parseColor("#3B82F6"));
 
                         // Highlight selected item card
                         for (View otherView : itemViews) {
                             GradientDrawable otherBg = (GradientDrawable) otherView.getBackground();
                             otherBg.setColor(Color.parseColor("#FFFFFF"));
-                            otherBg.setStroke((int) (1 * density), Color.parseColor("#E2E8F0"));
+                            otherBg.setStroke((int) (1 * mDensity), Color.parseColor("#E2E8F0"));
                         }
                         itemBg.setColor(Color.parseColor("#F0FDF4"));
-                        itemBg.setStroke((int) (1.5f * density), Color.parseColor("#10B981"));
+                        itemBg.setStroke((int) (1.5f * mDensity), Color.parseColor("#10B981"));
 
                         // Enable scan button
                         scanBtn.setEnabled(true);
@@ -580,9 +876,8 @@ public class FloatingScannerManager {
     private void showAnalyzingOverlay() {
         if (mExpandedOverlayView == null) return;
 
-        float density = mContext.getResources().getDisplayMetrics().density;
-        int p24 = (int) (24 * density);
-        int p16 = (int) (16 * density);
+        int p24 = (int) (24 * mDensity);
+        int p16 = (int) (16 * mDensity);
 
         FrameLayout backdrop = (FrameLayout) mExpandedOverlayView;
         backdrop.removeAllViews();
@@ -594,7 +889,7 @@ public class FloatingScannerManager {
 
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Color.parseColor("#FFFFFF"));
-        cardBg.setCornerRadius(18 * density);
+        cardBg.setCornerRadius(18 * mDensity);
         card.setBackground(cardBg);
 
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
@@ -613,7 +908,7 @@ public class FloatingScannerManager {
         title.setTextColor(Color.parseColor("#0F172A"));
         title.setTextSize(16);
         title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setPadding(0, p16, 0, (int) (6 * density));
+        title.setPadding(0, p16, 0, (int) (6 * mDensity));
         card.addView(title);
 
         TextView subtitle = new TextView(mContext);
@@ -662,11 +957,10 @@ public class FloatingScannerManager {
     private void renderResultCard(boolean isHighRisk, boolean isSuspicious, double riskScore) {
         if (mExpandedOverlayView == null) return;
 
-        float density = mContext.getResources().getDisplayMetrics().density;
-        int p20 = (int) (20 * density);
-        int p16 = (int) (16 * density);
-        int p12 = (int) (12 * density);
-        int p8 = (int) (8 * density);
+        int p20 = (int) (20 * mDensity);
+        int p16 = (int) (16 * mDensity);
+        int p12 = (int) (12 * mDensity);
+        int p8 = (int) (8 * mDensity);
 
         FrameLayout backdrop = (FrameLayout) mExpandedOverlayView;
         backdrop.removeAllViews();
@@ -677,7 +971,7 @@ public class FloatingScannerManager {
 
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Color.parseColor("#FFFFFF"));
-        cardBg.setCornerRadius(18 * density);
+        cardBg.setCornerRadius(18 * mDensity);
 
         String badgeText;
         String badgeColor;
@@ -689,19 +983,19 @@ public class FloatingScannerManager {
             badgeText = "⚠️ HIGH RISK (" + scorePct + "%)";
             badgeColor = "#DC2626";
             badgeBgColor = "#FEF2F2";
-            cardBg.setStroke((int) (2 * density), Color.parseColor("#EF4444"));
+            cardBg.setStroke((int) (2 * mDensity), Color.parseColor("#EF4444"));
             explanation = "This message may be a scam.\n\nAvoid clicking links or sharing OTPs, passwords, bank details, or money.";
         } else if (isSuspicious) {
             badgeText = "⚠️ SUSPICIOUS (" + scorePct + "%)";
             badgeColor = "#D97706";
             badgeBgColor = "#FFFBEB";
-            cardBg.setStroke((int) (1.5f * density), Color.parseColor("#F59E0B"));
+            cardBg.setStroke((int) (1.5f * mDensity), Color.parseColor("#F59E0B"));
             explanation = "This message contains suspicious patterns.\n\nVerify directly with the sender before taking any action.";
         } else {
             badgeText = "✓ LOW RISK";
             badgeColor = "#059669";
             badgeBgColor = "#ECFDF5";
-            cardBg.setStroke((int) (1.5f * density), Color.parseColor("#10B981"));
+            cardBg.setStroke((int) (1.5f * mDensity), Color.parseColor("#10B981"));
             explanation = "We did not detect strong signs of fraud in this text.\n\nStill verify unexpected requests before acting.";
         }
 
@@ -724,7 +1018,7 @@ public class FloatingScannerManager {
         badge.setPadding(p12, p8, p12, p8);
         GradientDrawable badgeDrawable = new GradientDrawable();
         badgeDrawable.setColor(Color.parseColor(badgeBgColor));
-        badgeDrawable.setCornerRadius(999 * density);
+        badgeDrawable.setCornerRadius(999 * mDensity);
         badge.setBackground(badgeDrawable);
         badge.setGravity(Gravity.CENTER);
         card.addView(badge);
@@ -749,7 +1043,7 @@ public class FloatingScannerManager {
 
         GradientDrawable closeBg = new GradientDrawable();
         closeBg.setColor(Color.parseColor(isHighRisk ? "#DC2626" : "#2563EB"));
-        closeBg.setCornerRadius(10 * density);
+        closeBg.setCornerRadius(10 * mDensity);
         closeBtn.setBackground(closeBg);
 
         closeBtn.setOnClickListener(new View.OnClickListener() {
@@ -779,9 +1073,8 @@ public class FloatingScannerManager {
     private void showErrorOverlay(String message) {
         if (mExpandedOverlayView == null) return;
 
-        float density = mContext.getResources().getDisplayMetrics().density;
-        int p20 = (int) (20 * density);
-        int p12 = (int) (12 * density);
+        int p20 = (int) (20 * mDensity);
+        int p12 = (int) (12 * mDensity);
 
         FrameLayout backdrop = (FrameLayout) mExpandedOverlayView;
         backdrop.removeAllViews();
@@ -793,7 +1086,7 @@ public class FloatingScannerManager {
 
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(Color.parseColor("#FFFFFF"));
-        cardBg.setCornerRadius(18 * density);
+        cardBg.setCornerRadius(18 * mDensity);
         card.setBackground(cardBg);
 
         DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
@@ -870,12 +1163,15 @@ public class FloatingScannerManager {
     }
 
     /**
-     * Returns the bot back to its sleeping floating-button state.
+     * Returns the bot back to its sleeping floating-button state docked at the screen edge.
      */
     public void returnToSleepingState() {
         mMainHandler.removeCallbacks(mReturnToSleepRunnable);
         dismissExpandedOverlay();
         mCurrentState = State.SLEEPING;
         mSelectedText = "";
+
+        // Ensure floating button is docked to the edge and dimmed
+        snapToEdge(true);
     }
 }

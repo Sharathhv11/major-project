@@ -24,6 +24,7 @@ public class AccessibilityPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new AccessibilityBridgeModule(reactContext));
+        modules.add(new OcrModule(reactContext));
         return modules;
     }
 

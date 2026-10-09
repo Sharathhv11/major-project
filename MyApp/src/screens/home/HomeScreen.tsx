@@ -24,6 +24,7 @@ import UserAvatar from '../../components/UserAvatar';
 import Button from '../../components/Button';
 import Icon, {IconName} from '../../components/Icon';
 import {Colors, Typography, Spacing, Shadows} from '../../theme/theme';
+import MessageFraudChecker from './components/MessageFraudChecker';
 import {
   checkAllServiceStatus,
   openAccessibilitySettings,
@@ -134,6 +135,17 @@ const HomeScreen: React.FC = () => {
   };
 
   const quickActions: QuickAction[] = [
+    {
+      id: 'checker',
+      icon: 'Search',
+      iconBg: '#EFF6FF',
+      iconColor: '#3a86ff',
+      label: 'Fraud Checker',
+      description: 'Check message or image',
+      onPress: () => {
+        navigation.dispatch(CommonActions.navigate({name: 'MessageChecker'}));
+      },
+    },
     {
       id: 'profile',
       icon: 'User',
@@ -442,6 +454,9 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* ─── Message Fraud Checker Section ──────────────────────── */}
+        <MessageFraudChecker />
 
         {/* ─── Account Overview Card ─────────────────────────────── */}
         <View style={[styles.card, Shadows.card]}>

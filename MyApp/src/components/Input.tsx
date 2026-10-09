@@ -20,13 +20,14 @@ import {Colors, Typography, Spacing} from '../theme/theme';
 import Icon, {IconName} from './Icon';
 
 export interface InputProps extends Omit<TextInputProps, 'style'> {
-  label: string;
+  label?: string;
   error?: string;
   isPassword?: boolean;
   disabled?: boolean;
   containerStyle?: ViewStyle;
   leftIcon?: IconName | React.ReactNode;
   hint?: string;
+  focusColor?: string;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -37,6 +38,7 @@ const Input: React.FC<InputProps> = ({
   containerStyle,
   leftIcon,
   hint,
+  focusColor,
   ...textInputProps
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -63,11 +65,13 @@ const Input: React.FC<InputProps> = ({
     textInputProps.onBlur?.(e);
   };
 
+  const activeFocusColor = focusColor || Colors.primary;
+
   const borderColor = error
     ? Colors.error
     : borderAnimation.interpolate({
         inputRange: [0, 1],
-        outputRange: [Colors.border, Colors.primary],
+        outputRange: [Colors.border, activeFocusColor],
       });
 
   const backgroundColor = disabled
@@ -78,12 +82,14 @@ const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, error && styles.labelError]}>
-          {label}
-        </Text>
-        {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
-      </View>
+      {label ? (
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, error && styles.labelError]}>
+            {label}
+          </Text>
+          {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
+        </View>
+      ) : null}
 
       <Animated.View
         style={[
@@ -103,7 +109,7 @@ const Input: React.FC<InputProps> = ({
                   error
                     ? Colors.error
                     : isFocused
-                    ? Colors.primary
+                    ? activeFocusColor
                     : Colors.textTertiary
                 }
               />

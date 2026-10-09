@@ -9,3 +9,4 @@ export * from './fraudDetector';
 export * from './alertHelper';
 export * from './localFraudFilter';
 export * from './manualScanHandler';
+export * from './messageCheckerHandler';

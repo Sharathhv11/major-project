@@ -16,9 +16,11 @@ import SettingsScreen from '../screens/settings/SettingsScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 import {Colors, Typography, Spacing, Shadows} from '../theme/theme';
 import Icon, {IconName} from '../components/Icon';
+import MessageCheckerScreen from '../screens/home/MessageCheckerScreen';
 
 export type HomeStackParamList = {
   HomeMain: undefined;
+  MessageChecker: undefined;
 };
 
 export type ProfileStackParamList = {
@@ -70,8 +72,17 @@ const stackScreenOptions = {
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 
 const HomeStackScreen: React.FC = () => (
-  <HomeStack.Navigator screenOptions={{headerShown: false, ...stackScreenOptions}}>
-    <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+  <HomeStack.Navigator screenOptions={stackScreenOptions}>
+    <HomeStack.Screen
+      name="HomeMain"
+      component={HomeScreen}
+      options={{headerShown: false}}
+    />
+    <HomeStack.Screen
+      name="MessageChecker"
+      component={MessageCheckerScreen}
+      options={{title: 'Message Fraud Checker', headerBackTitle: 'Home'}}
+    />
   </HomeStack.Navigator>
 );
 
