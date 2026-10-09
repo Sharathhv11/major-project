@@ -350,6 +350,64 @@ Authorization: Bearer <access_token>
 
 ---
 
+## 7️⃣ Conversational AI Security Assistant
+
+### `POST /api/assistant/chat`
+
+Handles conversational AI requests for:
+1. **Explain This Detection** — Translates machine learning and rule-based detector outputs into plain language.
+2. **Fraud Help & Recovery** — Incident triage for clicking links, sharing OTPs, or transferring money, with priority escalation to the National Cybercrime Helpline **1930** and [cybercrime.gov.in](https://cybercrime.gov.in/).
+
+**Request Body**
+```json
+{
+  "message": "Why is this link suspicious?",
+  "mode": "detection_explanation",
+  "conversationId": "conv_12345",
+  "detectionContext": {
+    "detectionId": "rec_001",
+    "source": "SMS",
+    "classification": "FRAUD",
+    "riskScore": 0.92,
+    "reasons": ["Suspicious URL detected", "Urgent deadline keyword"],
+    "safePreview": "URGENT: Your bank account will be blocked..."
+  },
+  "history": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "How can I help you today?" }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|:--------:|-------------|
+| `message` | string | ✓ | User message (1–2000 characters) |
+| `mode` | string | ✗ | `detection_explanation` or `general_help` (default: `general_help`) |
+| `conversationId` | string | ✗ | Stable session identifier |
+| `detectionContext` | object | ✗ | Minimal validated detector context |
+| `history` | array | ✗ | Up to 20 recent conversation turns |
+
+**Success Response** `200 OK`
+```json
+{
+  "success": true,
+  "conversationId": "conv_12345",
+  "mode": "detection_explanation",
+  "response": "This message was flagged with a 92% risk score because...",
+  "suggestedFollowUps": [
+    "What should I do next?",
+    "Could this be a real bank message?"
+  ],
+  "actionChecklist": [
+    "Do not click the link or download attachments",
+    "Block and report the sender"
+  ],
+  "urgency": "medium"
+}
+```
+
+---
+
 ## ⚠️ Common Error Response Format
 
 All error responses follow this structure:

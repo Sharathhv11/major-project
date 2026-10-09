@@ -40,6 +40,7 @@ import {
 // Dashboard Modular Components
 import DashboardHeader from './components/DashboardHeader';
 import ProtectionStatusCard from './components/ProtectionStatusCard';
+import FraudHelpAssistantCard from './components/FraudHelpAssistantCard';
 import QuickActionsGrid from './components/QuickActionsGrid';
 import RecentDetectionsSection from './components/RecentDetectionsSection';
 import SecurityInsightsCard from './components/SecurityInsightsCard';
@@ -138,6 +139,17 @@ export const HomeScreen: React.FC = () => {
     navigation.dispatch(CommonActions.navigate({ name: 'Settings' }));
   };
 
+  const handleOpenAssistant = () => {
+    navigation.navigate('AssistantChat', { mode: 'general_help' });
+  };
+
+  const handleSelectAssistantPrompt = (prompt: string) => {
+    navigation.navigate('AssistantChat', {
+      mode: 'general_help',
+      initialPrompt: prompt,
+    });
+  };
+
   const isProtectionFullyActive =
     serviceStatus.accessibilityEnabled &&
     serviceStatus.overlayGranted &&
@@ -167,6 +179,12 @@ export const HomeScreen: React.FC = () => {
           status={serviceStatus}
           floatingBotActive={floatingBotActive}
           onToggleFloatingBot={handleToggleFloatingBot}
+        />
+
+        {/* ─── Fraud Help Assistant Entry Point ──────────────────────── */}
+        <FraudHelpAssistantCard
+          onOpenAssistant={handleOpenAssistant}
+          onSelectPrompt={handleSelectAssistantPrompt}
         />
 
         {/* ─── Section C: Quick Actions ─────────────────────────────── */}

@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Icon from '../../components/Icon';
 import { Colors, Typography, Spacing, Shadows } from '../../theme/theme';
 import {
@@ -29,6 +30,7 @@ import {
 const PRIMARY_COLOR = '#3a86ff';
 
 export const DetectionHistoryScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [records, setRecords] = useState<DetectionRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState<'ALL' | 'FRAUD' | 'CLEAN'>('ALL');
@@ -104,6 +106,23 @@ export const DetectionHistoryScreen: React.FC = () => {
     return 'Manual Checker';
   };
 
+  const handleExplainRecord = (record: DetectionRecord) => {
+    navigation.navigate('AssistantChat', {
+      mode: 'detection_explanation',
+      detectionContext: {
+        detectionId: record.id,
+        source: record.source,
+        classification: record.classification || (record.isFraud ? 'FRAUD' : 'LEGITIMATE'),
+        riskScore: record.riskScore,
+        reasons: record.reasons || [],
+        safePreview: record.preview,
+      },
+      initialPrompt: record.isFraud || record.riskScore >= 0.70
+        ? 'Why was this message flagged as a threat and what signs indicate fraud?'
+        : 'Can you explain the safety assessment of this message?',
+    });
+  };
+
   const renderItem = ({ item }: { item: DetectionRecord }) => {
     const isThreat = item.isFraud || item.riskScore >= 0.70;
     const scorePct = Math.round(item.riskScore * 100);
@@ -162,6 +181,18 @@ export const DetectionHistoryScreen: React.FC = () => {
             </Text>
           </View>
         </View>
+
+        {/* Understand this warning action button */}
+        <TouchableOpacity
+          style={styles.cardExplainBtn}
+          onPress={() => handleExplainRecord(item)}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Understand this warning">
+          <Icon name="Sparkles" size={13} color={PRIMARY_COLOR} strokeWidth={2.2} style={{ marginRight: 6 }} />
+          <Text style={styles.cardExplainText}>Understand this warning</Text>
+          <Icon name="ChevronRight" size={12} color={PRIMARY_COLOR} strokeWidth={2.4} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -390,6 +421,22 @@ const styles = StyleSheet.create({
   },
   scorePillTextClean: {
     color: '#059669',
+  },
+  cardExplainBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  cardExplainText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: PRIMARY_COLOR,
   },
 
   // Empty State

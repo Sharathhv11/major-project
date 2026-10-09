@@ -25,6 +25,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from '../../../components/Icon';
 import { Colors, Typography, Spacing, Shadows } from '../../../theme/theme';
 import { pickScreenshot, extractTextFromScreenshot } from '../../../services/ocrService';
@@ -48,6 +49,7 @@ export const MessageFraudChecker: React.FC<MessageFraudCheckerProps> = ({
   onScanComplete,
   initialMode,
 }) => {
+  const navigation = useNavigation<any>();
   // Input & state
   const [inputText, setInputText] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -179,6 +181,25 @@ export const MessageFraudChecker: React.FC<MessageFraudCheckerProps> = ({
       );
     }
     setStep('INPUT');
+  };
+
+  const handleExplainDetection = () => {
+    if (!checkResult) return;
+    const isThreat = checkResult.riskScore >= 0.70;
+    navigation.navigate('AssistantChat', {
+      mode: 'detection_explanation',
+      detectionContext: {
+        detectionId: `scan_${Date.now()}`,
+        source: selectedImageUri ? 'OCR' : 'MANUAL_CHECK',
+        classification: isThreat ? 'FRAUD' : (checkResult.riskScore >= 0.40 ? 'SUSPICIOUS' : 'LEGITIMATE'),
+        riskScore: checkResult.riskScore,
+        reasons: checkResult.reasons || [],
+        safePreview: checkResult.analyzedText ? checkResult.analyzedText.substring(0, 80) : '',
+      },
+      initialPrompt: isThreat
+        ? 'Why was this message flagged as a threat and what signs indicate fraud?'
+        : 'Can you explain the safety assessment of this message?',
+    });
   };
 
   const canCheck = inputText.trim().length >= 5 && step !== 'ANALYZING' && step !== 'OCR_READING';
@@ -530,14 +551,28 @@ export const MessageFraudChecker: React.FC<MessageFraudCheckerProps> = ({
                 <Text style={styles.primaryCheckBtnText}>Retry Check</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={styles.checkAnotherBtn}
-                onPress={handleReset}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Check another message">
-                <Text style={styles.checkAnotherBtnText}>Check Another Message</Text>
-              </TouchableOpacity>
+              <View style={styles.resultButtonsStack}>
+                <TouchableOpacity
+                  style={styles.explainDetectionBtn}
+                  onPress={handleExplainDetection}
+                  activeOpacity={0.88}
+                  accessibilityRole="button"
+                  accessibilityLabel="Understand this warning">
+                  <Icon name="Sparkles" size={16} color="#FFFFFF" strokeWidth={2.2} style={{ marginRight: 8 }} />
+                  <Text style={styles.explainDetectionBtnText}>
+                    {checkResult.riskScore >= 0.70 ? 'Understand this warning' : 'Explain this result'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.checkAnotherBtn}
+                  onPress={handleReset}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Check another message">
+                  <Text style={styles.checkAnotherBtnText}>Check Another Message</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -1014,6 +1049,23 @@ const styles = StyleSheet.create({
   // Result action buttons
   resultActionsRow: {
     marginTop: 4,
+  },
+  resultButtonsStack: {
+    gap: 10,
+  },
+  explainDetectionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 12,
+    height: 48,
+    ...Shadows.sm,
+  },
+  explainDetectionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
   checkAnotherBtn: {
     backgroundColor: '#FFFFFF',

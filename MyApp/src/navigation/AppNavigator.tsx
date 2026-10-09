@@ -24,24 +24,41 @@ import SettingsScreen from '../screens/settings/SettingsScreen';
 import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import AssistantChatScreen from '../screens/assistant/AssistantChatScreen';
 import { Colors, Typography, Spacing, Shadows } from '../theme/theme';
 import Icon, { IconName } from '../components/Icon';
 
 const PRIMARY_COLOR = '#3a86ff';
+
+export interface AssistantChatParams {
+  mode?: 'detection_explanation' | 'general_help';
+  detectionContext?: {
+    detectionId?: string;
+    source?: string;
+    classification?: string;
+    riskScore?: number;
+    reasons?: string[];
+    safePreview?: string;
+  };
+  initialPrompt?: string;
+}
 
 export type HomeStackParamList = {
   HomeMain: undefined;
   MessageChecker?: { initialMode?: 'paste' | 'upload' };
   DetectionHistory: undefined;
   Profile: undefined;
+  AssistantChat?: AssistantChatParams;
 };
 
 export type CheckStackParamList = {
   CheckMain?: { initialMode?: 'paste' | 'upload' };
+  AssistantChat?: AssistantChatParams;
 };
 
 export type HistoryStackParamList = {
   HistoryMain: undefined;
+  AssistantChat?: AssistantChatParams;
 };
 
 export type SettingsStackParamList = {
@@ -111,6 +128,11 @@ const HomeStackScreen: React.FC = () => (
       component={ProfileScreen}
       options={{ title: 'My Profile', headerBackTitle: 'Home' }}
     />
+    <HomeStack.Screen
+      name="AssistantChat"
+      component={AssistantChatScreen}
+      options={{ headerShown: false }}
+    />
   </HomeStack.Navigator>
 );
 
@@ -125,6 +147,11 @@ const CheckStackScreen: React.FC = () => (
       component={MessageCheckerScreen}
       options={{ title: 'Fraud Checker', headerShown: false }}
     />
+    <CheckStack.Screen
+      name="AssistantChat"
+      component={AssistantChatScreen}
+      options={{ headerShown: false }}
+    />
   </CheckStack.Navigator>
 );
 
@@ -138,6 +165,11 @@ const HistoryStackScreen: React.FC = () => (
       name="HistoryMain"
       component={DetectionHistoryScreen}
       options={{ title: 'Detection History', headerShown: false }}
+    />
+    <HistoryStack.Screen
+      name="AssistantChat"
+      component={AssistantChatScreen}
+      options={{ headerShown: false }}
     />
   </HistoryStack.Navigator>
 );

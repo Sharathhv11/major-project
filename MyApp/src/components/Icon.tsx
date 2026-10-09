@@ -45,7 +45,11 @@ export type IconName =
   | 'RefreshCw'
   | 'Trash2'
   | 'FileText'
-  | 'Link';
+  | 'Link'
+  | 'Send'
+  | 'HelpCircle'
+  | 'Bot'
+  | 'MessageSquare';
 
 export interface IconProps {
   name: IconName;
@@ -1330,6 +1334,190 @@ export const Icon: React.FC<IconProps> = ({
                 borderWidth: strokeWidth,
                 borderColor: color,
                 transform: [{rotate: '-45deg'}],
+              }}
+            />
+          </View>
+        );
+
+      case 'Send':
+        return (
+          <View style={iconStyles.canvas}>
+            {/* Arrowhead chevron pointing upper-right */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 3.5,
+                right: 3.5,
+                width: 10,
+                height: 10,
+                borderTopWidth: strokeWidth,
+                borderRightWidth: strokeWidth,
+                borderColor: color,
+              }}
+            />
+            {/* Diagonal thrust line */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 11,
+                left: 3.5,
+                width: 15,
+                height: strokeWidth,
+                backgroundColor: color,
+                borderRadius: strokeWidth / 2,
+                transform: [{ rotate: '-45deg' }],
+              }}
+            />
+          </View>
+        );
+
+      case 'HelpCircle':
+        return (
+          <View style={iconStyles.canvas}>
+            <View
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: 2,
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                borderWidth: strokeWidth,
+                borderColor: color,
+              }}
+            />
+            {/* Question curve */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 6,
+                left: 8.5,
+                width: 7,
+                height: 6,
+                borderTopWidth: strokeWidth,
+                borderRightWidth: strokeWidth,
+                borderTopRightRadius: 3.5,
+                borderColor: color,
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                top: 11,
+                left: 11,
+                width: strokeWidth,
+                height: 3,
+                backgroundColor: color,
+              }}
+            />
+            {/* Question dot */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 5.5,
+                left: 10.75,
+                width: strokeWidth + 0.5,
+                height: strokeWidth + 0.5,
+                borderRadius: (strokeWidth + 0.5) / 2,
+                backgroundColor: color,
+              }}
+            />
+          </View>
+        );
+
+      case 'Bot':
+        return (
+          <View style={iconStyles.canvas}>
+            {/* Antenna ball */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: 10.5,
+                width: 3,
+                height: 3,
+                borderRadius: 1.5,
+                backgroundColor: color,
+              }}
+            />
+            {/* Antenna stem */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 4,
+                left: 11,
+                width: strokeWidth,
+                height: 3,
+                backgroundColor: color,
+              }}
+            />
+            {/* Bot head */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 7,
+                left: 3.5,
+                width: 17,
+                height: 14,
+                borderRadius: 3.5,
+                borderWidth: strokeWidth,
+                borderColor: color,
+              }}
+            />
+            {/* Eye left */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 11.5,
+                left: 7.5,
+                width: 2.5,
+                height: 2.5,
+                borderRadius: 1.25,
+                backgroundColor: color,
+              }}
+            />
+            {/* Eye right */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 11.5,
+                left: 14,
+                width: 2.5,
+                height: 2.5,
+                borderRadius: 1.25,
+                backgroundColor: color,
+              }}
+            />
+          </View>
+        );
+
+      case 'MessageSquare':
+        return (
+          <View style={iconStyles.canvas}>
+            <View
+              style={{
+                position: 'absolute',
+                top: 3,
+                left: 3,
+                width: 18,
+                height: 14,
+                borderRadius: 3,
+                borderWidth: strokeWidth,
+                borderColor: color,
+              }}
+            />
+            {/* Tail */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 15,
+                left: 6,
+                width: 5,
+                height: 4,
+                borderLeftWidth: strokeWidth,
+                borderBottomWidth: strokeWidth,
+                borderColor: color,
+                transform: [{ rotate: '45deg' }],
               }}
             />
           </View>

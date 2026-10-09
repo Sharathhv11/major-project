@@ -46,6 +46,7 @@ app.get("/", (req, res) => {
 // ---------------------------------------------------------------------------
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/fraud", require("./routes/fraudRoutes"));
+app.use("/api/assistant", require("./routes/assistantRoutes"));
 
 // ---------------------------------------------------------------------------
 // 404 handler — catch unmatched routes
