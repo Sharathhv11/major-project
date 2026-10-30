@@ -1,0 +1,1049 @@
+{
+  "timestamp": "2026-10-27T10:00:00Z",
+  "model_id": "VynoDePal/sentra-sms-fraud-detector",
+  "calibrated_threshold": 0.75,
+  "dataset_summary": {
+    "total_samples": 30,
+    "fraud_samples": 15,
+    "legitimate_samples": 15
+  },
+  "test_a_local_filter": {
+    "description": "Stage 1 Local Pattern Pre-Filter Only (Routing Optimization)",
+    "locally_filtered_count": 15,
+    "backend_requests_count": 15,
+    "fraudulent_skipped_count": 0,
+    "metrics": {
+      "total": 30,
+      "true_positives": 15,
+      "false_positives": 0,
+      "true_negatives": 15,
+      "false_negatives": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    }
+  },
+  "test_b_bert_only": {
+    "description": "Stage 2 BERT Inference Only (Direct Offline Evaluation)",
+    "metrics": {
+      "total": 30,
+      "true_positives": 15,
+      "false_positives": 0,
+      "true_negatives": 15,
+      "false_negatives": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    }
+  },
+  "test_c_full_pipeline": {
+    "description": "Complete Integrated Pipeline (Local Filter + Context Calibration + BERT)",
+    "metrics": {
+      "total": 30,
+      "true_positives": 15,
+      "false_positives": 0,
+      "true_negatives": 15,
+      "false_negatives": 0,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0
+    }
+  },
+  "canara_bank_regression": {
+    "id": "canara_bank_regression_1",
+    "expected_label": "NOT_FRAUD",
+    "test_a_forwarded": false,
+    "test_b_prediction": "NOT_FRAUD",
+    "test_c_prediction": "NOT_FRAUD",
+    "passed": true
+  },
+  "detailed_results": [
+    {
+      "id": "canara_bank_regression_1",
+      "category": "security_awareness",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "UPI Pin is used for authorization of payment. Money will always be ded...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (never share, authorization of payment, money will always be deducted if you use upi pin, app's upi pin page, never share upi pin, never share otp). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.02,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_upi_pin_1"
+    },
+    {
+      "id": "fraud_upi_pin_solicitation_1",
+      "category": "credential_phishing",
+      "expected_label": "FRAUD",
+      "message_preview": "To receive your pending refund of Rs. 4,500, enter your UPI Pin immedi...",
+      "test_a_local": {
+        "score": 9,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'pending refund' in [refund_cashback] (+3)",
+          "Matched keyword 'pin' in [credentials] (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.941,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.941,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_upi_pin_1"
+    },
+    {
+      "id": "legit_otp_awareness_pair_2",
+      "category": "security_awareness",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Never share your OTP with anyone. Your bank will never ask for it unde...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (never share, will never ask, never share otp). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.015,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_otp_share_2"
+    },
+    {
+      "id": "fraud_otp_solicitation_pair_2",
+      "category": "credential_phishing",
+      "expected_label": "FRAUD",
+      "message_preview": "Share your OTP with me immediately to prevent your bank account from b...",
+      "test_a_local": {
+        "score": 14,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'otp' in [credentials] (+4)",
+          "Matched keyword 'account blocked' in [account_threat] (+3)",
+          "Matched pattern 'otp_credential_request' (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.962,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.962,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_otp_share_2"
+    },
+    {
+      "id": "legit_upi_faq_pair_3",
+      "category": "banking_faq",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Bank will never call you asking for your UPI PIN. UPI PIN is only requ...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (never call you asking, only for sending money, never share upi pin). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.021,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_upi_receive_3"
+    },
+    {
+      "id": "fraud_upi_receive_pair_3",
+      "category": "credential_phishing",
+      "expected_label": "FRAUD",
+      "message_preview": "You have received Rs. 10,000 via UPI. Enter your UPI PIN now to accept...",
+      "test_a_local": {
+        "score": 6,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'upi' in [financial_common] (+1)",
+          "Matched keyword 'pin' in [credentials] (+4)",
+          "Matched keyword 'payment' in [financial_common] (+1)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.915,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.915,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_upi_receive_3"
+    },
+    {
+      "id": "legit_electricity_notice_pair_4",
+      "category": "utility_bill",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Dear consumer, your electricity bill of Rs. 850 for meter #82719 is du...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": []
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.035,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_electricity_4"
+    },
+    {
+      "id": "fraud_electricity_threat_pair_4",
+      "category": "utility_threat",
+      "expected_label": "FRAUD",
+      "message_preview": "Dear consumer, your electricity power will be disconnected tonight at ...",
+      "test_a_local": {
+        "score": 10,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'electricity disconnected' in [account_threat] (+3)",
+          "Matched pattern 'electricity_disconnection_threat' (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.954,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.954,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_electricity_4"
+    },
+    {
+      "id": "legit_upi_credit_pair_5",
+      "category": "bank_transaction",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Dear customer, Rs. 2,000.00 credited to A/C XX9012 on 24-Oct from Amit...",
+      "test_a_local": {
+        "score": 1,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'upi' in [financial_common] (+1)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.018,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_bonus_5"
+    },
+    {
+      "id": "fraud_bonus_claim_pair_5",
+      "category": "prize_lottery",
+      "expected_label": "FRAUD",
+      "message_preview": "You have received Rs. 20,000 Diwali bonus! Click http://festive-bonus-...",
+      "test_a_local": {
+        "score": 9,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'click here' in [suspicious_links] (+2)",
+          "Suspicious URL pattern (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.985,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.985,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      },
+      "contrastive_pair_id": "pair_bonus_5"
+    },
+    {
+      "id": "legit_rbi_advisory_6",
+      "category": "security_awareness",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "RBI Kehta Hai: Do not disclose your PIN, OTP, CVV, or passwords to any...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (rbi kehta hai, do not disclose). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.012,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_sbi_security_alert_7",
+      "category": "security_awareness",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "SBI Security Alert: Beware of fake lottery calls or requests asking fo...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (beware of fake, never ask). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.024,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_debit_notification_8",
+      "category": "bank_transaction",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Rs. 1,450.00 debited from your HDFC Bank A/C ending 4120 on 22-Oct-24 ...",
+      "test_a_local": {
+        "score": 1,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'bank' in [financial_common] (+1)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.019,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_otp_delivery_9",
+      "category": "auth_otp",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "481920 is your secret OTP for login to your account. Valid for 10 mins...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": true,
+        "reasons": [
+          "Recognized legitimate security-awareness notice (do not share). Sensitive terms exempt."
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.038,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_flipkart_tracking_10",
+      "category": "ecommerce_delivery",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Your Flipkart order has been shipped. Track your package at https://fl...",
+      "test_a_local": {
+        "score": 2,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "External URL (+2)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.021,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_amazon_delivery_otp_11",
+      "category": "ecommerce_delivery",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Your Amazon package will be delivered today by 5 PM. Delivery OTP is 4...",
+      "test_a_local": {
+        "score": 4,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'otp' in [credentials] (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.045,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_support_helpline_12",
+      "category": "customer_support",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "For queries regarding your service request #98214, please contact our ...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": []
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.016,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_salary_credit_13",
+      "category": "bank_transaction",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Salary of Rs. 65,000 credited to your HDFC Bank account ending in 8891...",
+      "test_a_local": {
+        "score": 2,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.019,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_casual_chat_14",
+      "category": "casual_chat",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Hey, are you coming to college tomorrow? Can you send me the notes whe...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": []
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.011,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_casual_money_mention_15",
+      "category": "casual_chat",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Can you transfer 500 rupees to my UPI ID for yesterday's dinner? Thank...",
+      "test_a_local": {
+        "score": 1,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'upi' in [financial_common] (+1)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.028,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "legit_tax_invoice_pdf_16",
+      "category": "invoice_pdf",
+      "expected_label": "NOT_FRAUD",
+      "message_preview": "Thank you for your purchase. Your tax invoice is attached as invoice_s...",
+      "test_a_local": {
+        "score": 0,
+        "forwarded": false,
+        "is_security_awareness": false,
+        "reasons": []
+      },
+      "test_b_bert": {
+        "prediction": "NOT_FRAUD",
+        "fraud_probability": 0.020,
+        "risk_level": "LEGITIMATE",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "NOT_FRAUD",
+        "effective_score": 0.0,
+        "status": "FILTERED_LOCALLY",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_mixed_content_evasion_17",
+      "category": "mixed_content_attack",
+      "expected_label": "FRAUD",
+      "message_preview": "Your bank account has been suspended due to incomplete KYC! Verify imm...",
+      "test_a_local": {
+        "score": 16,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Mixed-content warning: message pairs defensive wording with malicious indicator (External URL present, Suspicious URL structure, Insecure HTTP link, account suspended). Exemption voided.",
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'account suspended' in [account_threat] (+3)",
+          "Insecure HTTP (+4)",
+          "Suspicious URL pattern (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.978,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.978,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_mixed_content_evasion_18",
+      "category": "mixed_content_attack",
+      "expected_label": "FRAUD",
+      "message_preview": "Never share your PIN. However, your debit card is blocked. Click http:...",
+      "test_a_local": {
+        "score": 14,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Mixed-content warning: message pairs defensive wording with malicious indicator (External URL present, Suspicious URL structure, Insecure HTTP link, card blocked, click here). Exemption voided.",
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'debit card' in [financial_common] (+1)",
+          "Matched keyword 'card blocked' in [account_threat] (+3)",
+          "Matched keyword 'click here' in [suspicious_links] (+2)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.982,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.982,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_kyc_phishing_19",
+      "category": "fake_kyc",
+      "expected_label": "FRAUD",
+      "message_preview": "Dear customer, your SBI account KYC verification is expired and will b...",
+      "test_a_local": {
+        "score": 15,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'account blocked' in [account_threat] (+3)",
+          "Matched keyword 'kyc expired' in [kyc_verification] (+3)",
+          "Suspicious URL pattern (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.991,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.991,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_account_suspension_20",
+      "category": "account_suspension",
+      "expected_label": "FRAUD",
+      "message_preview": "URGENT: Your HDFC bank account is suspended due to suspicious activity...",
+      "test_a_local": {
+        "score": 14,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'urgent' in [urgent_action] (+2)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'account suspended' in [account_threat] (+3)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.988,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.988,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_delivery_fee_21",
+      "category": "delivery_scam",
+      "expected_label": "FRAUD",
+      "message_preview": "India Post: Your parcel is on hold due to missing address and pending ...",
+      "test_a_local": {
+        "score": 11,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Insecure HTTP (+4)",
+          "Suspicious URL pattern (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.952,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.952,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_sim_deactivation_22",
+      "category": "support_impersonation",
+      "expected_label": "FRAUD",
+      "message_preview": "SIM DEACTIVATION NOTICE: Your mobile SIM will be permanently blocked w...",
+      "test_a_local": {
+        "score": 8,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'sim blocked' in [account_threat] (+3)",
+          "Matched keyword 'link aadhaar' in [kyc_verification] (+3)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.945,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.945,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_phonepe_coercion_23",
+      "category": "payment_coercion",
+      "expected_label": "FRAUD",
+      "message_preview": "URGENT: Approve pending payment request of Rs. 25,000 on PhonePe immed...",
+      "test_a_local": {
+        "score": 9,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'urgent' in [urgent_action] (+2)",
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'payment' in [financial_common] (+1)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account frozen' in [account_threat] (+3)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.923,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.923,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_kbc_lottery_24",
+      "category": "prize_lottery",
+      "expected_label": "FRAUD",
+      "message_preview": "Congratulations! Your mobile number won Rs. 25,00,000 in KBC Lucky Dra...",
+      "test_a_local": {
+        "score": 14,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'congratulations' in [prize_reward] (+3)",
+          "Matched keyword 'kbc lottery' in [lottery_winner] (+3)",
+          "Matched keyword 'lucky draw' in [lottery_winner] (+3)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.994,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.994,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_work_from_home_25",
+      "category": "job_investment_scam",
+      "expected_label": "FRAUD",
+      "message_preview": "Earn Rs. 3,000 to Rs. 8,000 daily by simply liking YouTube videos from ...",
+      "test_a_local": {
+        "score": 8,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'work from home' in [job_investment_scam] (+3)",
+          "Matched keyword 'earn daily' in [job_investment_scam] (+3)",
+          "External URL (+2)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.967,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.967,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_tax_refund_26",
+      "category": "tax_phishing",
+      "expected_label": "FRAUD",
+      "message_preview": "Income Tax Department: An outstanding tax refund of Rs. 14,890 has bee...",
+      "test_a_local": {
+        "score": 10,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'tax refund' in [refund_cashback] (+3)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.984,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.984,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_pan_card_blocked_27",
+      "category": "fake_kyc",
+      "expected_label": "FRAUD",
+      "message_preview": "Dear customer, your bank account has been deactivated as PAN card is n...",
+      "test_a_local": {
+        "score": 14,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'account deactivated' in [account_threat] (+3)",
+          "Matched keyword 'pan card update' in [kyc_verification] (+3)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.992,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.992,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_credit_card_points_28",
+      "category": "prize_lottery",
+      "expected_label": "FRAUD",
+      "message_preview": "Your credit card reward points worth Rs. 9,450 are expiring in 24 hour...",
+      "test_a_local": {
+        "score": 11,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'credit card' in [financial_common] (+1)",
+          "Matched keyword 'account' in [financial_common] (+1)",
+          "Matched keyword 'reward points expire' in [refund_cashback] (+3)",
+          "Matched keyword 'claim cashback' in [refund_cashback] (+3)",
+          "Insecure HTTP (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.975,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.975,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_credential_harvesting_29",
+      "category": "credential_phishing",
+      "expected_label": "FRAUD",
+      "message_preview": "Bank officer here. To stop an unauthorized debit of Rs. 49,999 on your...",
+      "test_a_local": {
+        "score": 10,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'debit card' in [financial_common] (+1)",
+          "Matched keyword 'otp' in [credentials] (+4)",
+          "Matched keyword 'cvv' in [credentials] (+4)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.971,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.971,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    },
+    {
+      "id": "fraud_apk_download_30",
+      "category": "phishing_url",
+      "expected_label": "FRAUD",
+      "message_preview": "Your bank app requires mandatory security update. Download APK immedia...",
+      "test_a_local": {
+        "score": 13,
+        "forwarded": true,
+        "is_security_awareness": false,
+        "reasons": [
+          "Matched keyword 'immediately' in [urgent_action] (+2)",
+          "Matched keyword 'bank' in [financial_common] (+1)",
+          "Matched keyword 'download apk' in [suspicious_links] (+2)",
+          "Insecure HTTP (+4)",
+          "Suspicious URL pattern (+5)"
+        ]
+      },
+      "test_b_bert": {
+        "prediction": "FRAUD",
+        "fraud_probability": 0.993,
+        "risk_level": "FRAUD",
+        "is_correct": true
+      },
+      "test_c_pipeline": {
+        "final_prediction": "FRAUD",
+        "effective_score": 0.993,
+        "status": "PROCESSED_BY_BERT",
+        "is_correct": true
+      }
+    }
+  ]
+}

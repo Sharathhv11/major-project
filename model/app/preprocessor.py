@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -18,6 +18,10 @@ class PreprocessedResult:
     original_text: str
     normalized_text: str
     detected_entities: Dict[str, List[str]] = field(default_factory=dict)
+    is_security_awareness: bool = False
+    has_malicious_indicators: bool = False
+    awareness_matches: List[str] = field(default_factory=list)
+    malicious_matches: List[str] = field(default_factory=list)
 
 
 # Common e-commerce and retail merchant names that frequently trigger false positives
@@ -208,11 +212,106 @@ class ContextAwarePreprocessor:
         # 9. Clean excessive spaces
         processed = re.sub(r"\s+", " ", processed).strip()
 
+        # 10. Context-aware Security Awareness & Mixed-Content Evaluation
+        awareness_eval = self.evaluate_security_awareness(text, entities)
+
         return PreprocessedResult(
             original_text=text,
             normalized_text=processed,
             detected_entities={k: v for k, v in entities.items() if v},
+            is_security_awareness=awareness_eval["is_pure_awareness"],
+            has_malicious_indicators=awareness_eval["has_malicious_indicators"],
+            awareness_matches=awareness_eval["awareness_matches"],
+            malicious_matches=awareness_eval["malicious_matches"],
         )
+
+    def evaluate_security_awareness(
+        self, text: str, entities: Dict[str, List[str]]
+    ) -> Dict[str, Any]:
+        """Evaluates whether message is legitimate security education or mixed-content attack.
+
+        Rules:
+        1. Checks for defensive phrasing warning against disclosing credentials.
+        2. Strictly inspects for presence of malicious indicators (external URLs, threats, coercion).
+        3. Only classifies as pure awareness if zero malicious indicators are present.
+        """
+        lowered = text.lower()
+
+        defensive_phrases = [
+            "never share",
+            "do not share",
+            "don't share",
+            "will never ask",
+            "never ask",
+            "never call you asking",
+            "do not disclose",
+            "keep your pin secret",
+            "keep your otp secret",
+            "beware of fake",
+            "beware of fraud",
+            "rbi kehta hai",
+            "money will always be deducted if you use upi pin",
+            "authorization of payment",
+            "app's upi pin page",
+            "only for sending money",
+            "never share upi pin",
+            "never share otp",
+        ]
+
+        threat_indicators = [
+            "account blocked",
+            "account suspended",
+            "account will be closed",
+            "account deactivated",
+            "account frozen",
+            "service terminated",
+            "sim blocked",
+            "electricity disconnected",
+            "card blocked",
+            "pan card blocked",
+            "click here",
+            "click the link",
+            "click this link",
+            "tap here",
+            "download apk",
+            "install app",
+            "claim your prize",
+            "claim cashback",
+            "won a prize",
+            "lottery winner",
+            "share your otp with",
+            "tell me your otp",
+            "enter your upi pin to receive",
+            "contact manager",
+            "call officer immediately",
+        ]
+
+        awareness_matches = [p for p in defensive_phrases if p in lowered]
+
+        malicious_matches = []
+        # Check URLs detected
+        if entities.get("urls"):
+            malicious_matches.append(f"External URL: {entities['urls']}")
+        elif _URL_PATTERN.search(text):
+            malicious_matches.append("External URL pattern detected")
+
+        # Check threat phrases with boundary checks
+        for threat in threat_indicators:
+            pattern = r"(?:^|[^a-zA-Z0-9])" + re.escape(threat) + r"(?=[^a-zA-Z0-9]|$)"
+            if re.search(pattern, lowered):
+                malicious_matches.append(threat)
+
+        has_awareness = len(awareness_matches) > 0
+        has_malicious = len(malicious_matches) > 0
+        is_pure_awareness = has_awareness and not has_malicious
+
+        return {
+            "is_pure_awareness": is_pure_awareness,
+            "has_defensive_phrase": has_awareness,
+            "has_malicious_indicators": has_malicious,
+            "awareness_matches": awareness_matches,
+            "malicious_matches": malicious_matches,
+        }
 
 
 preprocessor = ContextAwarePreprocessor()

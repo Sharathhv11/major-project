@@ -25,6 +25,7 @@ import ChangePasswordScreen from '../screens/settings/ChangePasswordScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import AssistantChatScreen from '../screens/assistant/AssistantChatScreen';
+import NetworkAnalysisScreen from '../screens/network/NetworkAnalysisScreen';
 import { Colors, Typography, Spacing, Shadows } from '../theme/theme';
 import Icon, { IconName } from '../components/Icon';
 
@@ -49,6 +50,7 @@ export type HomeStackParamList = {
   DetectionHistory: undefined;
   Profile: undefined;
   AssistantChat?: AssistantChatParams;
+  NetworkAnalysis?: undefined;
 };
 
 export type CheckStackParamList = {
@@ -132,6 +134,11 @@ const HomeStackScreen: React.FC = () => (
       name="AssistantChat"
       component={AssistantChatScreen}
       options={{ headerShown: false }}
+    />
+    <HomeStack.Screen
+      name="NetworkAnalysis"
+      component={NetworkAnalysisScreen}
+      options={{ title: 'Network Analysis', headerBackTitle: 'Home' }}
     />
   </HomeStack.Navigator>
 );

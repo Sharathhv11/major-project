@@ -189,21 +189,32 @@ export class MessageFraudProcessor {
       }
 
       // Receive fraud classification + risk score
-      const { mlResult, threshold: backendThreshold } = response.data;
-      const effectiveThreshold = options.threshold ?? backendThreshold ?? 0.7;
+      const { mlResult, threshold: backendThreshold, mlAvailable } = response.data;
+      const effectiveThreshold = options.threshold ?? backendThreshold ?? 0.75;
 
-      const riskScore = mlResult ? mlResult.fraudScore : 0;
-      const classification = mlResult
-        ? mlResult.prediction || (mlResult.isFraud ? 'FRAUD' : 'NOT_FRAUD')
-        : 'NOT_FRAUD';
+      // Requirement 6: Ensure that unknown, malformed, or failed model responses do not silently become NOT_FRAUD
+      if (mlAvailable === false || !mlResult) {
+        console.warn('Backend ML model was unavailable or returned empty result');
+        return {
+          status: 'ERROR',
+          messageHash,
+          cached: false,
+          alertShown: false,
+          localFilterResult,
+          error: 'ML model service was unavailable or returned empty result',
+        };
+      }
 
+      const riskScore = mlResult.fraudScore;
+      const classification = mlResult.prediction || (mlResult.isFraud ? 'FRAUD' : 'NOT_FRAUD');
+
+      // Requirement 4 & 5: Verified threshold application (0.75).
+      // SUSPICIOUS tier (0.45 - 0.75) represents borderline caution and must NOT trigger the disruptive fraud block overlay.
       const isFraudulent = Boolean(
-        mlResult &&
-          (mlResult.isFraud ||
-            riskScore >= effectiveThreshold ||
-            classification === 'FRAUD' ||
-            mlResult.riskLevel === 'FRAUD' ||
-            mlResult.riskLevel === 'SUSPICIOUS'),
+        mlResult.isFraud ||
+          riskScore >= effectiveThreshold ||
+          classification === 'FRAUD' ||
+          mlResult.riskLevel === 'FRAUD',
       );
 
       // Store result in local cache

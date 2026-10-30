@@ -178,8 +178,6 @@ describe('4. Combination Patterns and URL Signal Handling', () => {
     expect(result.urlDetails?.hasHttp).toBe(true);
     expect(result.score).toBeGreaterThanOrEqual(4);
   });
-});
-
 describe('5. Explainability and Threshold Customization', () => {
   it('returns inspectable breakdown of reasons, matched keywords, and categories', () => {
     const message = 'URGENT: Click here to claim your reward';
@@ -208,3 +206,45 @@ describe('5. Explainability and Threshold Customization', () => {
     expect(analyzeLocally('   ').shouldSendToBackend).toBe(false);
   });
 });
+
+describe('6. Security Awareness & Negation-Aware Pattern Matching', () => {
+  it('Canara Bank Regression: Recognizes pure security awareness and does NOT forward', () => {
+    const message =
+      "UPI Pin is used for authorization of payment. Money will always be deducted if you use UPI Pin. Never share UPI Pin, CVV, OTP with anyone. UPI Pin will always be used only on the app's UPI Pin page.";
+    const result = analyzeLocally(message);
+
+    expect(result.isSecurityAwareness).toBe(true);
+    expect(result.shouldSendToBackend).toBe(false);
+    expect(result.score).toBe(0);
+    expect(result.matchedPatterns).not.toContain('otp_credential_request');
+  });
+
+  it('Negation-aware pattern matching: "never share OTP" does not trigger otp_credential_request pattern', () => {
+    const message = 'Never share your OTP with anyone. Bank staff never asks.';
+    const result = analyzeLocally(message);
+
+    expect(result.matchedPatterns).not.toContain('otp_credential_request');
+    expect(result.isSecurityAwareness).toBe(true);
+    expect(result.shouldSendToBackend).toBe(false);
+  });
+
+  it('Genuine solicitation triggers otp_credential_request and forwards to backend', () => {
+    const message = 'Please share your OTP with our agent to confirm your refund.';
+    const result = analyzeLocally(message);
+
+    expect(result.matchedPatterns).toContain('otp_credential_request');
+    expect(result.shouldSendToBackend).toBe(true);
+  });
+
+  it('Mixed-content attack: Scammer adding defensive sentence does NOT evade detection', () => {
+    const message =
+      'Your account is suspended! Update KYC immediately at http://scam-bank.cc. Never share your OTP with anyone.';
+    const result = analyzeLocally(message);
+
+    expect(result.isSecurityAwareness).toBe(false);
+    expect(result.shouldSendToBackend).toBe(true);
+    expect(result.hasUrl).toBe(true);
+    expect(result.reasons.some((r) => r.includes('Mixed-content warning'))).toBe(true);
+  });
+});
+

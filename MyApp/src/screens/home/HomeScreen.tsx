@@ -23,11 +23,15 @@ import {
   AppStateStatus,
   Platform,
   RefreshControl,
+  View,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
-import { Colors, Spacing } from '../../theme/theme';
+import { Colors, Spacing, Shadows } from '../../theme/theme';
+import Icon from '../../components/Icon';
 import {
   checkAllServiceStatus,
   openOverlaySettings,
@@ -143,6 +147,10 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('AssistantChat', { mode: 'general_help' });
   };
 
+  const handleOpenNetworkAnalysis = () => {
+    navigation.navigate('NetworkAnalysis');
+  };
+
   const handleSelectAssistantPrompt = (prompt: string) => {
     navigation.navigate('AssistantChat', {
       mode: 'general_help',
@@ -195,6 +203,34 @@ export const HomeScreen: React.FC = () => {
           onOpenSettings={handleOpenSettings}
         />
 
+        {/* ─── Transaction Network Analysis Feature Card ────────────── */}
+        <TouchableOpacity
+          style={[styles.networkCard, Shadows.card]}
+          onPress={handleOpenNetworkAnalysis}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open Transaction Network Analysis">
+          <View style={styles.networkCardLeft}>
+            <View style={styles.networkIconBox}>
+              <Icon name="Activity" size={20} color={PRIMARY_COLOR} strokeWidth={2.4} />
+            </View>
+            <View style={styles.networkTextCol}>
+              <View style={styles.networkBadgeRow}>
+                <Text style={styles.networkCardTitle}>Network Analysis</Text>
+                <View style={styles.gcnBadge}>
+                  <Text style={styles.gcnBadgeText}>GCN</Text>
+                </View>
+              </View>
+              <Text style={styles.networkCardSubtitle} numberOfLines={1}>
+                Inspect transaction graphs to detect money mule rings & cyclic fraud
+              </Text>
+            </View>
+          </View>
+          <View style={styles.networkArrowBtn}>
+            <Icon name="ChevronRight" size={18} color={PRIMARY_COLOR} strokeWidth={2.5} />
+          </View>
+        </TouchableOpacity>
+
         {/* ─── Section D: Recent Detections ─────────────────────────── */}
         <RecentDetectionsSection onViewAll={handleViewHistory} />
 
@@ -214,6 +250,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.screenHorizontal,
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.xxxl,
+  },
+  networkCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+  },
+  networkCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  networkIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  networkTextCol: {
+    flex: 1,
+  },
+  networkBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  networkCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  gcnBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 1,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  gcnBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  networkCardSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  networkArrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

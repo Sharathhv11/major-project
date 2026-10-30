@@ -179,6 +179,21 @@
       ]
     }
   },
+  "awarenessSignals": {
+    "enabled": true,
+    "defensivePhrases": [
+      "never share",
+      "do not share",
+      "don't share",
+      "will never ask",
+      "never ask",
+      "never call you asking",
+      "do not disclose",
+      "keep your pin secret",
+      "beware of fake",
+      "rbi kehta hai"
+    ]
+  },
   "patterns": [
     {
       "name": "bank_verification_urgency",
@@ -221,10 +236,17 @@
     },
     {
       "name": "otp_credential_request",
-      "description": "Request to share or enter OTP",
+      "description": "Request to disclose, share or enter OTP / credentials (non-defensive)",
       "keywords": [
         "otp",
         "share"
+      ],
+      "negationKeywords": [
+        "never",
+        "do not",
+        "don't",
+        "not share",
+        "refrain"
       ],
       "weight": 5
     },

@@ -126,6 +126,7 @@ class TextFraudClassifier:
 
         # 1. Context-aware text preprocessing to normalize FP triggers
         normalized_text = None
+        prep_res = None
         text_for_inference = text
         if self.enable_preprocessing:
             prep_res = preprocessor.preprocess(text)
@@ -154,8 +155,27 @@ class TextFraudClassifier:
         raw_label = self._id2label.get(predicted_index, str(predicted_index))
         confidence = float(probabilities[predicted_index].item())
 
-        # 3. Decision layer with 3-tier risk classification
-        if fraud_probability >= self.threshold:
+        # 3. Decision layer with context-aware security awareness calibration
+        if prep_res and prep_res.is_security_awareness:
+            logger.info(
+                "Verified security awareness advisory detected (%s). Calibrating as LEGITIMATE.",
+                prep_res.awareness_matches,
+            )
+            prediction = "NOT_FRAUD"
+            risk_level = "LEGITIMATE"
+            fraud_probability = min(fraud_probability * 0.05, 0.04)
+            raw_label = "LEGITIMATE"
+            confidence = round(1.0 - fraud_probability, 4)
+        elif prep_res and prep_res.has_malicious_indicators and prep_res.awareness_matches:
+            logger.warning(
+                "Mixed content evasion attack detected (%s with malicious: %s). Malicious indicators override.",
+                prep_res.awareness_matches,
+                prep_res.malicious_matches,
+            )
+            fraud_probability = max(fraud_probability, self.threshold)
+            prediction = "FRAUD"
+            risk_level = "FRAUD"
+        elif fraud_probability >= self.threshold:
             prediction = "FRAUD"
             risk_level = "FRAUD"
         elif fraud_probability >= self.suspicious_threshold:

@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data - never commit real transaction data
+data/raw/*.csv
+data/raw/*.json
+data/raw/*.xlsx
+data/raw/*.parquet
+!data/raw/.gitkeep
+
+data/interim/*.csv
+data/interim/*.json
+data/interim/*.pt
+!data/interim/.gitkeep
+
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.pt
+!data/processed/.gitkeep
+
+data/synthetic/*.csv
+data/synthetic/*.json
+!data/synthetic/.gitkeep
+
+# Model artifacts (large binaries)
+artifacts/**/*.pt
+artifacts/**/*.joblib
+artifacts/**/*.json
+!artifacts/.gitkeep
+!artifacts/**/.gitkeep
+
+# Reports (generated)
+reports/figures/*.png
+reports/figures/*.pdf
+!reports/figures/.gitkeep
+
+# Environment
+.env
+.env.local
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# mypy
+.mypy_cache/

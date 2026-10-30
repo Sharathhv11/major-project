@@ -1,0 +1,232 @@
+# FraudShield Network Analysis - Default Configuration
+# ====================================================
+# All adjustable parameters for the GCN fraud detection pipeline.
+
+# --- Project ---
+project:
+  name: "fraudshield-network-analysis"
+  version: "0.1.0"
+  random_seed: 42
+
+# --- Paths ---
+paths:
+  raw_data: "data/raw"
+  interim_data: "data/interim"
+  processed_data: "data/processed"
+  synthetic_data: "data/synthetic"
+  artifacts: "artifacts"
+  reports: "reports/figures"
+
+# --- Dataset ---
+dataset:
+  # Source: "synthetic" or path to a CSV file
+  source: "synthetic"
+  # Column mappings from source CSV to canonical schema
+  column_mapping:
+    transaction_id: "transaction_id"
+    timestamp: "timestamp"
+    sender_id: "sender_id"
+    receiver_id: "receiver_id"
+    amount: "amount"
+    currency: "currency"
+    transaction_type: "transaction_type"
+    transaction_status: "transaction_status"
+    sender_entity_type: "sender_entity_type"
+    receiver_entity_type: "receiver_entity_type"
+    fraud_label: "fraud_label"
+    source_record_id: "source_record_id"
+  # Required columns (must be present)
+  required_columns:
+    - "transaction_id"
+    - "timestamp"
+    - "sender_id"
+    - "receiver_id"
+    - "amount"
+  # Optional columns
+  optional_columns:
+    - "currency"
+    - "transaction_type"
+    - "transaction_status"
+    - "sender_entity_type"
+    - "receiver_entity_type"
+    - "fraud_label"
+    - "source_record_id"
+
+# --- Synthetic Data Generator ---
+synthetic:
+  num_entities: 2000
+  num_transactions: 15000
+  fraud_ring_count: 8
+  fraud_ring_size_range: [3, 8]
+  legitimate_high_volume_count: 15
+  shared_counterparty_count: 10
+  fraud_ratio: 0.08
+  amount_range: [10.0, 50000.0]
+  fraud_amount_range: [100.0, 200000.0]
+  rapid_transfer_window_hours: 2
+  time_span_days: 180
+  currency: "INR"
+  random_seed: 42
+
+# --- Entity Resolution ---
+entity_resolution:
+  normalize_case: true
+  strip_whitespace: true
+  # Supported entity types
+  entity_types:
+    - "account"
+    - "upi_id"
+    - "phone"
+    - "card"
+    - "wallet"
+    - "unknown"
+  # Enable pseudonymization for persistent artifacts
+  pseudonymize: false
+  hmac_key: "change-this-key-in-production"
+
+# --- Graph Construction ---
+graph:
+  # How to handle multiple edges between same entity pair
+  edge_aggregation: "multi"  # "multi" keeps all, "aggregate" merges
+  # Whether to add reverse edges for message passing
+  add_reverse_edges: true
+  # Handle self-loops
+  remove_self_loops: true
+  # Handle isolated nodes
+  keep_isolated_nodes: true
+  # Temporal cutoff (null = use all data)
+  temporal_cutoff: null
+
+# --- Feature Engineering ---
+features:
+  # Transaction activity features
+  transaction_features:
+    - "in_tx_count"
+    - "out_tx_count"
+    - "total_in_amount"
+    - "total_out_amount"
+    - "avg_in_amount"
+    - "avg_out_amount"
+    - "max_tx_amount"
+    - "tx_amount_std"
+    - "unique_in_counterparties"
+    - "unique_out_counterparties"
+    - "active_days"
+    - "recent_tx_freq_7d"
+    - "time_since_last_tx_days"
+  # Network structure features
+  network_features:
+    - "in_degree"
+    - "out_degree"
+    - "total_degree"
+    - "distinct_neighbors"
+  # Temporal features
+  temporal_features:
+    - "tx_count_1d"
+    - "tx_count_7d"
+    - "tx_count_30d"
+    - "rapid_in_out_count"
+    - "in_out_volume_ratio"
+  # Data quality features
+  quality_features:
+    - "record_count"
+    - "coverage_days"
+  # Scaler: "standard", "robust", or "minmax"
+  scaler_type: "robust"
+  # Log-transform skewed amount features
+  log_transform_amounts: true
+
+# --- Data Splitting ---
+splitting:
+  # Strategy: "temporal" or "random"
+  strategy: "temporal"
+  # Temporal split ratios
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  # For random split (fallback)
+  random_train_ratio: 0.6
+  random_val_ratio: 0.2
+  random_test_ratio: 0.2
+
+# --- Model Architecture ---
+model:
+  # Model type: "gcn" or "graphsage"
+  type: "gcn"
+  # Hidden dimensions
+  hidden_dim: 128
+  # Number of GCN layers
+  num_layers: 2
+  # Dropout rate
+  dropout: 0.3
+  # Number of output classes
+  num_classes: 2
+  # Activation function
+  activation: "relu"
+
+# --- Baseline Model ---
+baseline:
+  # Type: "logistic_regression" or "random_forest"
+  type: "logistic_regression"
+  # LogisticRegression params
+  logistic_regression:
+    max_iter: 1000
+    class_weight: "balanced"
+    C: 1.0
+  # RandomForest params
+  random_forest:
+    n_estimators: 200
+    max_depth: 10
+    class_weight: "balanced"
+
+# --- Training ---
+training:
+  epochs: 200
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  # Class weight strategy: "balanced", "manual", or "none"
+  class_weight_strategy: "balanced"
+  manual_class_weights: [1.0, 10.0]
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 30
+    min_delta: 0.001
+    monitor: "val_avg_precision"
+  # Optimizer: "adam" or "adamw"
+  optimizer: "adam"
+  # Device: "auto", "cpu", or "cuda"
+  device: "auto"
+  # Gradient clipping
+  gradient_clip_norm: 1.0
+
+# --- Evaluation ---
+evaluation:
+  # Threshold selection strategy
+  threshold_strategy: "f1_optimal"  # "f1_optimal", "pr_based", or "fixed"
+  fixed_threshold: 0.5
+  # Risk categories
+  risk_categories:
+    low:
+      max_score: 0.3
+      label: "Low Risk"
+    medium:
+      max_score: 0.7
+      label: "Medium Risk"
+    high:
+      max_score: 1.0
+      label: "High Risk"
+  # Whether risk thresholds are validated or provisional
+  risk_thresholds_validated: false
+
+# --- Inference ---
+inference:
+  batch_size: 1024
+  # Return top-k risky nodes
+  top_k: 50
+
+# --- Logging ---
+logging:
+  level: "INFO"
+  # Never log raw identifiers
+  mask_identifiers: true

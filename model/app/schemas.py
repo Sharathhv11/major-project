@@ -43,3 +43,31 @@ class PredictResponse(BaseModel):
         default=None,
         description="Text after context-aware entity normalization.",
     )
+
+
+class NetworkAnalyzeRequest(BaseModel):
+    transactions: list[dict[str, object]] = Field(
+        ...,
+        description="List of transaction records containing source, target, amount, timestamp, etc.",
+    )
+    dataset_name: Optional[str] = Field(
+        default="transactions.csv",
+        description="Identifier or file name of the dataset.",
+    )
+
+
+class NetworkAnalyzeResponse(BaseModel):
+    risk_score: int
+    risk_level: Literal["Low", "Medium", "High"]
+    total_transactions: int
+    total_entities: int
+    flagged_entities_count: int
+    flagged_transactions_count: int
+    nodes: list[dict[str, object]]
+    edges: list[dict[str, object]]
+    suspicious_entities: list[dict[str, object]]
+    suspicious_transactions: list[dict[str, object]]
+    model_type: str
+    inference_time_ms: float
+    dataset_name: Optional[str] = None
+

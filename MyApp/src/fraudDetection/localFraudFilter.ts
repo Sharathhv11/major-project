@@ -30,6 +30,7 @@ export interface PatternConfig {
   name: string;
   description: string;
   keywords: string[];
+  negationKeywords?: string[];
   weight: number;
 }
 
@@ -41,11 +42,17 @@ export interface UrlSignalConfig {
   description?: string;
 }
 
+export interface AwarenessSignalsConfig {
+  enabled?: boolean;
+  defensivePhrases?: string[];
+}
+
 export interface FraudKeywordsConfig {
   version?: string;
   defaultThreshold: number;
   description?: string;
   urlSignal?: UrlSignalConfig;
+  awarenessSignals?: AwarenessSignalsConfig;
   categories: Record<string, KeywordCategoryConfig>;
   patterns?: PatternConfig[];
 }
@@ -54,6 +61,7 @@ export interface LocalFraudFilterResult {
   score: number;
   threshold: number;
   shouldSendToBackend: boolean;
+  isSecurityAwareness?: boolean;
   matchedKeywords: string[];
   matchedCategories: string[];
   matchedPatterns: string[];
@@ -64,6 +72,14 @@ export interface LocalFraudFilterResult {
     urlCount: number;
   };
   reasons: string[];
+}
+
+export interface SecurityAwarenessEvaluation {
+  isPureAwareness: boolean;
+  hasDefensivePhrase: boolean;
+  hasMaliciousIndicators: boolean;
+  defensiveMatches: string[];
+  maliciousIndicators: string[];
 }
 
 /**
@@ -79,6 +95,113 @@ export function normalizeText(text: string): string {
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Evaluates whether a message is an educational / security-awareness advisory.
+ *
+ * Rules:
+ * 1. Checks for defensive phrasing advising against sharing credentials or explaining payment authorization.
+ * 2. Scans for malicious indicators (external URLs, account blockage threats, action demands, prize lures).
+ * 3. Pure awareness is ONLY confirmed when defensive phrasing is present AND zero malicious indicators are detected.
+ * 4. If mixed content is detected (defensive wording + malicious indicator), awareness is voided and treated as high-risk.
+ */
+export function evaluateSecurityAwareness(
+  normalizedText: string,
+  rawText: string,
+  hasUrl: boolean,
+  isSuspiciousUrl: boolean,
+  hasInsecureHttp: boolean,
+  customDefensivePhrases?: string[],
+): SecurityAwarenessEvaluation {
+  const defaultDefensive = [
+    'never share',
+    'do not share',
+    'don\'t share',
+    'will never ask',
+    'never ask',
+    'never call you asking',
+    'do not disclose',
+    'keep your pin secret',
+    'keep your otp secret',
+    'beware of fake',
+    'beware of fraud',
+    'rbi kehta hai',
+    'money will always be deducted if you use upi pin',
+    'authorization of payment',
+    'app\'s upi pin page',
+    'only for sending money',
+    'never share upi pin',
+    'never share otp',
+  ];
+
+  const defensivePhrases = customDefensivePhrases && customDefensivePhrases.length > 0
+    ? customDefensivePhrases
+    : defaultDefensive;
+
+  const defensiveMatches: string[] = [];
+  for (const phrase of defensivePhrases) {
+    if (normalizedText.includes(phrase.toLowerCase())) {
+      defensiveMatches.push(phrase);
+    }
+  }
+
+  const maliciousIndicators: string[] = [];
+  if (hasUrl) {
+    maliciousIndicators.push('External URL link detected');
+  }
+  if (isSuspiciousUrl) {
+    maliciousIndicators.push('Suspicious URL structure detected');
+  }
+  if (hasInsecureHttp) {
+    maliciousIndicators.push('Insecure HTTP link detected');
+  }
+
+  const threatKeywords = [
+    'account blocked',
+    'account suspended',
+    'account will be closed',
+    'account deactivated',
+    'account frozen',
+    'service terminated',
+    'sim blocked',
+    'electricity disconnected',
+    'card blocked',
+    'pan card blocked',
+    'click here',
+    'click the link',
+    'click this link',
+    'tap here',
+    'download apk',
+    'install app',
+    'claim your prize',
+    'claim cashback',
+    'won a prize',
+    'lottery winner',
+    'share your otp with',
+    'tell me your otp',
+    'enter your upi pin to receive',
+    'contact manager',
+    'call officer immediately',
+  ];
+
+  for (const threat of threatKeywords) {
+    if (matchesKeyword(normalizedText, threat) || normalizedText.includes(threat)) {
+      maliciousIndicators.push(`Malicious indicator: "${threat}"`);
+    }
+  }
+
+  const hasDefensivePhrase = defensiveMatches.length > 0;
+  const hasMaliciousIndicators = maliciousIndicators.length > 0;
+  const isPureAwareness = hasDefensivePhrase && !hasMaliciousIndicators;
+
+  return {
+    isPureAwareness,
+    hasDefensivePhrase,
+    hasMaliciousIndicators,
+    defensiveMatches,
+    maliciousIndicators,
+  };
 }
 
 /**
@@ -149,6 +272,7 @@ export class LocalFraudFilter {
         score: 0,
         threshold,
         shouldSendToBackend: false,
+        isSecurityAwareness: false,
         matchedKeywords: [],
         matchedCategories: [],
         matchedPatterns: [],
@@ -157,39 +281,7 @@ export class LocalFraudFilter {
       };
     }
 
-    // ── 1. Evaluate Categories and Keywords ─────────────────────────────────
-    const categories = this.config.categories || {};
-    for (const [catKey, catConfig] of Object.entries(categories)) {
-      const weight = catConfig.weight || 1;
-      const keywords = catConfig.keywords || [];
-
-      for (const kw of keywords) {
-        if (matchesKeyword(normalized, kw)) {
-          matchedKeywords.push(kw);
-          matchedCategoriesSet.add(catKey);
-          score += weight;
-          reasons.push(`Matched keyword "${kw}" in [${catKey}] (+${weight})`);
-        }
-      }
-    }
-
-    // ── 2. Evaluate Multi-Keyword Combination Patterns ──────────────────────
-    const patterns = this.config.patterns || [];
-    for (const pattern of patterns) {
-      const patternKeywords = pattern.keywords || [];
-      if (patternKeywords.length === 0) continue;
-
-      const allMatch = patternKeywords.every((kw) => matchesKeyword(normalized, kw));
-      if (allMatch) {
-        matchedPatterns.push(pattern.name);
-        score += pattern.weight;
-        reasons.push(
-          `Matched pattern "${pattern.name}" (${patternKeywords.join(' + ')}) (+${pattern.weight}) - ${pattern.description}`,
-        );
-      }
-    }
-
-    // ── 3. Evaluate URL Signals ─────────────────────────────────────────────
+    // ── 1. Evaluate URL Signals First ────────────────────────────────────────
     const urlSignal = this.config.urlSignal;
     let hasUrl = false;
     let hasHttp = false;
@@ -207,7 +299,80 @@ export class LocalFraudFilter {
 
       const urlPatternResult = urlRule(rawText);
       isSuspiciousUrl = urlPatternResult.triggered;
+    }
 
+    // ── 2. Evaluate Security Awareness Context ──────────────────────────────
+    const defensivePhrases = this.config.awarenessSignals?.defensivePhrases;
+    const awarenessEval = evaluateSecurityAwareness(
+      normalized,
+      rawText,
+      hasUrl,
+      isSuspiciousUrl,
+      hasHttp,
+      defensivePhrases,
+    );
+
+    const isSecurityAwareness = awarenessEval.isPureAwareness;
+
+    if (awarenessEval.hasDefensivePhrase && awarenessEval.hasMaliciousIndicators) {
+      reasons.push(
+        `Mixed-content warning: message combines security awareness wording with malicious indicators (${awarenessEval.maliciousIndicators.join('; ')}). Exemption voided.`,
+      );
+    } else if (isSecurityAwareness) {
+      reasons.push(
+        `Recognized legitimate security-awareness message advising against credential disclosure (${awarenessEval.defensiveMatches.join(', ')}). Sensitive keywords exempt.`,
+      );
+    }
+
+    // ── 3. Evaluate Categories and Keywords ─────────────────────────────────
+    const categories = this.config.categories || {};
+    for (const [catKey, catConfig] of Object.entries(categories)) {
+      // In pure security awareness messages, do not penalize credentials or common financial terms
+      if (isSecurityAwareness && (catKey === 'credentials' || catKey === 'financial_common')) {
+        continue;
+      }
+
+      const weight = catConfig.weight || 1;
+      const keywords = catConfig.keywords || [];
+
+      for (const kw of keywords) {
+        if (matchesKeyword(normalized, kw)) {
+          matchedKeywords.push(kw);
+          matchedCategoriesSet.add(catKey);
+          score += weight;
+          reasons.push(`Matched keyword "${kw}" in [${catKey}] (+${weight})`);
+        }
+      }
+    }
+
+    // ── 4. Evaluate Multi-Keyword Combination Patterns ──────────────────────
+    const patterns = this.config.patterns || [];
+    for (const pattern of patterns) {
+      const patternKeywords = pattern.keywords || [];
+      if (patternKeywords.length === 0) continue;
+
+      // Check negation keywords (e.g., "never share" negates "otp + share" pattern)
+      if (pattern.negationKeywords && pattern.negationKeywords.length > 0) {
+        const isNegated = pattern.negationKeywords.some(
+          (neg) => matchesKeyword(normalized, neg) || normalized.includes(neg),
+        );
+        if (isNegated) {
+          continue; // Pattern negated by defensive language
+        }
+      }
+
+      const allMatch = patternKeywords.every((kw) => matchesKeyword(normalized, kw));
+      if (allMatch) {
+        matchedPatterns.push(pattern.name);
+        score += pattern.weight;
+        reasons.push(
+          `Matched pattern "${pattern.name}" (${patternKeywords.join(' + ')}) (+${pattern.weight}) - ${pattern.description}`,
+        );
+      }
+    }
+
+    // ── 5. Add URL Signal Score (if URLs were detected) ─────────────────────
+    if (hasUrl && urlSignal && urlSignal.enabled !== false) {
       let urlWeightToAdd = urlSignal.weight || 2;
 
       if (isSuspiciousUrl && urlSignal.weightSuspiciousPattern) {
@@ -229,6 +394,7 @@ export class LocalFraudFilter {
       score,
       threshold,
       shouldSendToBackend,
+      isSecurityAwareness,
       matchedKeywords,
       matchedCategories: Array.from(matchedCategoriesSet),
       matchedPatterns,

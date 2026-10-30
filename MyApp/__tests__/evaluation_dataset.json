@@ -1,0 +1,327 @@
+[
+  {
+    "id": "canara_bank_regression_1",
+    "message": "UPI Pin is used for authorization of payment. Money will always be deducted if you use UPI Pin. Never share UPI Pin, CVV, OTP with anyone. UPI Pin will always be used only on the app's UPI Pin page.",
+    "text": "UPI Pin is used for authorization of payment. Money will always be deducted if you use UPI Pin. Never share UPI Pin, CVV, OTP with anyone. UPI Pin will always be used only on the app's UPI Pin page.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "security_awareness",
+    "reason": "Official Canara Bank educational security advisory explaining UPI mechanics and warning users against sharing credentials.",
+    "contrastive_pair_id": "pair_upi_pin_1"
+  },
+  {
+    "id": "fraud_upi_pin_solicitation_1",
+    "message": "To receive your pending refund of Rs. 4,500, enter your UPI Pin immediately on this page or share UPI Pin with the bank executive.",
+    "text": "To receive your pending refund of Rs. 4,500, enter your UPI Pin immediately on this page or share UPI Pin with the bank executive.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "credential_phishing",
+    "reason": "Fraudulent request instructing the user to disclose or enter their UPI PIN to receive money.",
+    "contrastive_pair_id": "pair_upi_pin_1"
+  },
+  {
+    "id": "legit_otp_awareness_pair_2",
+    "message": "Never share your OTP with anyone. Your bank will never ask for it under any circumstances. Stay alert and secure.",
+    "text": "Never share your OTP with anyone. Your bank will never ask for it under any circumstances. Stay alert and secure.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "security_awareness",
+    "reason": "Official security warning advising users that banks never request confidential OTP codes.",
+    "contrastive_pair_id": "pair_otp_share_2"
+  },
+  {
+    "id": "fraud_otp_solicitation_pair_2",
+    "message": "Share your OTP with me immediately to prevent your bank account from being blocked. Bank verification team.",
+    "text": "Share your OTP with me immediately to prevent your bank account from being blocked. Bank verification team.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "credential_phishing",
+    "reason": "Direct pressure to disclose confidential OTP under threat of bank account blockage.",
+    "contrastive_pair_id": "pair_otp_share_2"
+  },
+  {
+    "id": "legit_upi_faq_pair_3",
+    "message": "Bank will never call you asking for your UPI PIN. UPI PIN is only required for sending money from your account, not receiving.",
+    "text": "Bank will never call you asking for your UPI PIN. UPI PIN is only required for sending money from your account, not receiving.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "banking_faq",
+    "reason": "Legitimate banking education explaining UPI PIN mechanics and warning that receiving money never requires a PIN.",
+    "contrastive_pair_id": "pair_upi_receive_3"
+  },
+  {
+    "id": "fraud_upi_receive_pair_3",
+    "message": "You have received Rs. 10,000 via UPI. Enter your UPI PIN now to accept this payment into your bank account.",
+    "text": "You have received Rs. 10,000 via UPI. Enter your UPI PIN now to accept this payment into your bank account.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "credential_phishing",
+    "reason": "Classic UPI collect/reverse fraud tricking users into entering UPI PIN under the guise of accepting incoming funds.",
+    "contrastive_pair_id": "pair_upi_receive_3"
+  },
+  {
+    "id": "legit_electricity_notice_pair_4",
+    "message": "Dear consumer, your electricity bill of Rs. 850 for meter #82719 is due on 28-Oct. Please pay at your electricity board portal or counter.",
+    "text": "Dear consumer, your electricity bill of Rs. 850 for meter #82719 is due on 28-Oct. Please pay at your electricity board portal or counter.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "utility_bill",
+    "reason": "Standard utility bill notification without coercive threats or unauthorized phone numbers.",
+    "contrastive_pair_id": "pair_electricity_4"
+  },
+  {
+    "id": "fraud_electricity_threat_pair_4",
+    "message": "Dear consumer, your electricity power will be disconnected tonight at 9:30 PM due to unpaid bill. Immediately contact officer at 8910293847.",
+    "text": "Dear consumer, your electricity power will be disconnected tonight at 9:30 PM due to unpaid bill. Immediately contact officer at 8910293847.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "utility_threat",
+    "reason": "Coercive power cut scam demanding immediate contact with a personal mobile number.",
+    "contrastive_pair_id": "pair_electricity_4"
+  },
+  {
+    "id": "legit_upi_credit_pair_5",
+    "message": "Dear customer, Rs. 2,000.00 credited to A/C XX9012 on 24-Oct from Amit Sharma via UPI ref 4291823719. Bal: Rs. 18,450.00.",
+    "text": "Dear customer, Rs. 2,000.00 credited to A/C XX9012 on 24-Oct from Amit Sharma via UPI ref 4291823719. Bal: Rs. 18,450.00.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "bank_transaction",
+    "reason": "Routine legitimate bank credit SMS notification.",
+    "contrastive_pair_id": "pair_bonus_5"
+  },
+  {
+    "id": "fraud_bonus_claim_pair_5",
+    "message": "You have received Rs. 20,000 Diwali bonus! Click http://festive-bonus-claim.xyz to credit this amount directly to your bank account.",
+    "text": "You have received Rs. 20,000 Diwali bonus! Click http://festive-bonus-claim.xyz to credit this amount directly to your bank account.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "prize_lottery",
+    "reason": "Lure scam with fake reward and phishing URL.",
+    "contrastive_pair_id": "pair_bonus_5"
+  },
+  {
+    "id": "legit_rbi_advisory_6",
+    "message": "RBI Kehta Hai: Do not disclose your PIN, OTP, CVV, or passwords to anyone, including bank officials. Report unauthorized transactions immediately to 1930.",
+    "text": "RBI Kehta Hai: Do not disclose your PIN, OTP, CVV, or passwords to anyone, including bank officials. Report unauthorized transactions immediately to 1930.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "security_awareness",
+    "reason": "Official Reserve Bank of India public awareness advisory against sharing banking credentials."
+  },
+  {
+    "id": "legit_sbi_security_alert_7",
+    "message": "SBI Security Alert: Beware of fake lottery calls or requests asking for OTP, CVV, or NetBanking password. SBI never asks for your credentials.",
+    "text": "SBI Security Alert: Beware of fake lottery calls or requests asking for OTP, CVV, or NetBanking password. SBI never asks for your credentials.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "security_awareness",
+    "reason": "Official bank security alert warning customers against credential theft."
+  },
+  {
+    "id": "legit_debit_notification_8",
+    "message": "Rs. 1,450.00 debited from your HDFC Bank A/C ending 4120 on 22-Oct-24 via POS at Shell Petrol Pump. Avail bal: Rs. 32,100.",
+    "text": "Rs. 1,450.00 debited from your HDFC Bank A/C ending 4120 on 22-Oct-24 via POS at Shell Petrol Pump. Avail bal: Rs. 32,100.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "bank_transaction",
+    "reason": "Standard legitimate debit transaction confirmation."
+  },
+  {
+    "id": "legit_otp_delivery_9",
+    "message": "481920 is your secret OTP for login to your account. Valid for 10 mins. Do not share this OTP with anyone, including bank staff.",
+    "text": "481920 is your secret OTP for login to your account. Valid for 10 mins. Do not share this OTP with anyone, including bank staff.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "auth_otp",
+    "reason": "Standard multi-factor authentication OTP delivery with warning not to share."
+  },
+  {
+    "id": "legit_flipkart_tracking_10",
+    "message": "Your Flipkart order has been shipped. Track your package at https://flipkart.com/track/OD9281746281",
+    "text": "Your Flipkart order has been shipped. Track your package at https://flipkart.com/track/OD9281746281",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "ecommerce_delivery",
+    "reason": "Legitimate e-commerce tracking message from verified merchant domain."
+  },
+  {
+    "id": "legit_amazon_delivery_otp_11",
+    "message": "Your Amazon package will be delivered today by 5 PM. Delivery OTP is 4821. Give this code to the delivery associate.",
+    "text": "Your Amazon package will be delivered today by 5 PM. Delivery OTP is 4821. Give this code to the delivery associate.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "ecommerce_delivery",
+    "reason": "Legitimate e-commerce delivery OTP for package handover."
+  },
+  {
+    "id": "legit_support_helpline_12",
+    "message": "For queries regarding your service request #98214, please contact our 24x7 customer support team at 1800-202-9898.",
+    "text": "For queries regarding your service request #98214, please contact our 24x7 customer support team at 1800-202-9898.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "customer_support",
+    "reason": "Standard customer service contact with official 1800 toll-free number."
+  },
+  {
+    "id": "legit_salary_credit_13",
+    "message": "Salary of Rs. 65,000 credited to your HDFC Bank account ending in 8891 on 21-Sep-24. Total available balance is Rs. 92,400.",
+    "text": "Salary of Rs. 65,000 credited to your HDFC Bank account ending in 8891 on 21-Sep-24. Total available balance is Rs. 92,400.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "bank_transaction",
+    "reason": "Standard monthly salary credit notification."
+  },
+  {
+    "id": "legit_casual_chat_14",
+    "message": "Hey, are you coming to college tomorrow? Can you send me the notes when you get time?",
+    "text": "Hey, are you coming to college tomorrow? Can you send me the notes when you get time?",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "casual_chat",
+    "reason": "Ordinary interpersonal conversation without financial or sensitive content."
+  },
+  {
+    "id": "legit_casual_money_mention_15",
+    "message": "Can you transfer 500 rupees to my UPI ID for yesterday's dinner? Thanks a lot!",
+    "text": "Can you transfer 500 rupees to my UPI ID for yesterday's dinner? Thanks a lot!",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "casual_chat",
+    "reason": "Benign informal peer-to-peer expense splitting between friends."
+  },
+  {
+    "id": "legit_tax_invoice_pdf_16",
+    "message": "Thank you for your purchase. Your tax invoice is attached as invoice_sep2024.pdf. Please keep it for warranty records.",
+    "text": "Thank you for your purchase. Your tax invoice is attached as invoice_sep2024.pdf. Please keep it for warranty records.",
+    "expected_label": "NOT_FRAUD",
+    "label": "LEGITIMATE",
+    "category": "invoice_pdf",
+    "reason": "Benign invoice attachment confirmation."
+  },
+  {
+    "id": "fraud_mixed_content_evasion_17",
+    "message": "Your bank account has been suspended due to incomplete KYC! Verify immediately at http://kyc-update-portal.cc. Never share your OTP with anyone.",
+    "text": "Your bank account has been suspended due to incomplete KYC! Verify immediately at http://kyc-update-portal.cc. Never share your OTP with anyone.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "mixed_content_attack",
+    "reason": "Malicious phishing scam attempting to evade detection by embedding a defensive advisory sentence alongside a phishing link and account threat."
+  },
+  {
+    "id": "fraud_mixed_content_evasion_18",
+    "message": "Never share your PIN. However, your debit card is blocked. Click http://card-unblock-fast.top immediately to restore your card access.",
+    "text": "Never share your PIN. However, your debit card is blocked. Click http://card-unblock-fast.top immediately to restore your card access.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "mixed_content_attack",
+    "reason": "Phishing lure attempting evasion by opening with a defensive phrase but immediately following with an urgent card block threat and phishing URL."
+  },
+  {
+    "id": "fraud_kyc_phishing_19",
+    "message": "Dear customer, your SBI account KYC verification is expired and will be blocked today. Update immediately at http://bit.ly/sbi-kyc-verify",
+    "text": "Dear customer, your SBI account KYC verification is expired and will be blocked today. Update immediately at http://bit.ly/sbi-kyc-verify",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "fake_kyc",
+    "reason": "Fake KYC expiration urgency with suspicious shortened phishing URL."
+  },
+  {
+    "id": "fraud_account_suspension_20",
+    "message": "URGENT: Your HDFC bank account is suspended due to suspicious activity. Verify credentials now at http://hdfc-security-auth.online to restore access.",
+    "text": "URGENT: Your HDFC bank account is suspended due to suspicious activity. Verify credentials now at http://hdfc-security-auth.online to restore access.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "account_suspension",
+    "reason": "Impersonation of bank security team with urgency and phishing portal."
+  },
+  {
+    "id": "fraud_delivery_fee_21",
+    "message": "India Post: Your parcel is on hold due to missing address and pending duty of Rs. 25. Pay immediately at http://india-post-pay.cc to avoid return.",
+    "text": "India Post: Your parcel is on hold due to missing address and pending duty of Rs. 25. Pay immediately at http://india-post-pay.cc to avoid return.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "delivery_scam",
+    "reason": "Postal parcel delivery fee lure leading to credential/card harvesting site."
+  },
+  {
+    "id": "fraud_sim_deactivation_22",
+    "message": "SIM DEACTIVATION NOTICE: Your mobile SIM will be permanently blocked within 2 hours due to unverified Aadhaar. Call customer support immediately at +91-9988776655.",
+    "text": "SIM DEACTIVATION NOTICE: Your mobile SIM will be permanently blocked within 2 hours due to unverified Aadhaar. Call customer support immediately at +91-9988776655.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "support_impersonation",
+    "reason": "Fake telecom operator warning with urgent deadline and rogue phone number."
+  },
+  {
+    "id": "fraud_phonepe_coercion_23",
+    "message": "URGENT: Approve pending payment request of Rs. 25,000 on PhonePe immediately or your bank account will be frozen permanently for non-compliance.",
+    "text": "URGENT: Approve pending payment request of Rs. 25,000 on PhonePe immediately or your bank account will be frozen permanently for non-compliance.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "payment_coercion",
+    "reason": "Coercion into approving a fraudulent payment request with threats of account freezing."
+  },
+  {
+    "id": "fraud_kbc_lottery_24",
+    "message": "Congratulations! Your mobile number won Rs. 25,00,000 in KBC Lucky Draw 2024. Contact Manager Rana Pratap on WhatsApp +91-9876543210 or claim at http://kbc-winner-2024.com",
+    "text": "Congratulations! Your mobile number won Rs. 25,00,000 in KBC Lucky Draw 2024. Contact Manager Rana Pratap on WhatsApp +91-9876543210 or claim at http://kbc-winner-2024.com",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "prize_lottery",
+    "reason": "High-value lottery sweepstakes scam with suspicious URL and rogue WhatsApp number."
+  },
+  {
+    "id": "fraud_work_from_home_25",
+    "message": "Earn Rs. 3,000 to Rs. 8,000 daily by simply liking YouTube videos from home! No experience needed. Join our Telegram channel now: https://t.me/quick-cash-earn",
+    "text": "Earn Rs. 3,000 to Rs. 8,000 daily by simply liking YouTube videos from home! No experience needed. Join our Telegram channel now: https://t.me/quick-cash-earn",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "job_investment_scam",
+    "reason": "Task scam promising unrealistic daily returns via unverified messaging groups."
+  },
+  {
+    "id": "fraud_tax_refund_26",
+    "message": "Income Tax Department: An outstanding tax refund of Rs. 14,890 has been approved. Submit your bank account and PAN at http://incometax-refund-gov.in to claim.",
+    "text": "Income Tax Department: An outstanding tax refund of Rs. 14,890 has been approved. Submit your bank account and PAN at http://incometax-refund-gov.in to claim.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "tax_phishing",
+    "reason": "Fake tax refund impersonation designed to harvest PAN and banking credentials."
+  },
+  {
+    "id": "fraud_pan_card_blocked_27",
+    "message": "Dear customer, your bank account has been deactivated as PAN card is not linked. Please update your PAN immediately at http://pan-link-alert.xyz/portal",
+    "text": "Dear customer, your bank account has been deactivated as PAN card is not linked. Please update your PAN immediately at http://pan-link-alert.xyz/portal",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "fake_kyc",
+    "reason": "Deactivation threat paired with fraudulent credential harvesting link."
+  },
+  {
+    "id": "fraud_credit_card_points_28",
+    "message": "Your credit card reward points worth Rs. 9,450 are expiring in 24 hours! Redeem cash into your account now: http://reward-redeem-bank.com",
+    "text": "Your credit card reward points worth Rs. 9,450 are expiring in 24 hours! Redeem cash into your account now: http://reward-redeem-bank.com",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "prize_lottery",
+    "reason": "Expiring reward points urgency paired with phishing portal."
+  },
+  {
+    "id": "fraud_credential_harvesting_29",
+    "message": "Bank officer here. To stop an unauthorized debit of Rs. 49,999 on your debit card, tell me your OTP and CVV right now.",
+    "text": "Bank officer here. To stop an unauthorized debit of Rs. 49,999 on your debit card, tell me your OTP and CVV right now.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "credential_phishing",
+    "reason": "Social engineering phone/SMS impersonation demanding immediate OTP and CVV disclosure."
+  },
+  {
+    "id": "fraud_apk_download_30",
+    "message": "Your bank app requires mandatory security update. Download APK immediately from http://bank-app-update.apk to avoid service interruption.",
+    "text": "Your bank app requires mandatory security update. Download APK immediately from http://bank-app-update.apk to avoid service interruption.",
+    "expected_label": "FRAUD",
+    "label": "FRAUD",
+    "category": "phishing_url",
+    "reason": "Malicious banking trojan / APK download scam."
+  }
+]

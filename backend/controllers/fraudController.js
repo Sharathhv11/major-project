@@ -33,7 +33,7 @@ const analyzeMessage = async (req, res, next) => {
     const FRAUD_MODEL_URL =
       process.env.FRAUD_MODEL_URL || "http://127.0.0.1:8000";
     const FRAUD_SCORE_THRESHOLD = parseFloat(
-      process.env.FRAUD_SCORE_THRESHOLD || "0.70"
+      process.env.FRAUD_SCORE_THRESHOLD || "0.75"
     );
 
     console.log(`🔍 Analyzing message for fraud: "${trimmedText.length > 60 ? trimmedText.substring(0, 60) + '...' : trimmedText}"`);
@@ -125,6 +125,86 @@ const analyzeMessage = async (req, res, next) => {
   }
 };
 
+// ==========================================================================
+// @desc    Analyze transaction network with Graph Convolutional Network (GCN)
+// @route   POST /api/fraud/analyze-network
+// @access  Public / Mobile client
+// ==========================================================================
+const analyzeNetworkTransactions = async (req, res, next) => {
+  try {
+    const { transactions, datasetName } = req.body;
+
+    if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A non-empty transactions array is required for network analysis.",
+      });
+    }
+
+    const FRAUD_MODEL_URL =
+      process.env.FRAUD_MODEL_URL || "http://127.0.0.1:8000";
+
+    console.log(
+      `🌐 Initiating GCN Network Analysis for ${transactions.length} transactions (${datasetName || "dataset"})`
+    );
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for graph processing
+
+    try {
+      const mlResponse = await fetch(`${FRAUD_MODEL_URL}/network/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactions,
+          dataset_name: datasetName || "transactions.csv",
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!mlResponse.ok) {
+        const errorText = await mlResponse.text().catch(() => "Unknown error");
+        console.error(`⚠️ GCN model error [${mlResponse.status}]:`, errorText);
+        return res.status(mlResponse.status).json({
+          success: false,
+          message: `GCN model error: ${errorText}`,
+        });
+      }
+
+      const gcnData = await mlResponse.json();
+
+      console.log(
+        `✅ GCN Network Analysis complete: Score ${gcnData.risk_score} (${gcnData.risk_level} Risk) in ${gcnData.inference_time_ms}ms`
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: gcnData,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr.name === "AbortError") {
+        console.error("⚠️ GCN Network Analysis timed out after 15 seconds");
+        return res.status(504).json({
+          success: false,
+          message: "GCN model service timed out during graph propagation.",
+        });
+      }
+      console.error("⚠️ GCN Network Analysis service unavailable:", fetchErr.message);
+      return res.status(503).json({
+        success: false,
+        message: "ML Model Service (Port 8000) is unavailable. Please verify the Python service is running.",
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   analyzeMessage,
+  analyzeNetworkTransactions,
 };
+

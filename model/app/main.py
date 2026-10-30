@@ -13,7 +13,13 @@ from app.config import (
     SUSPICIOUS_THRESHOLD,
 )
 from app.model import classifier
-from app.schemas import PredictRequest, PredictResponse
+from app.network_gcn import analyze_transaction_network
+from app.schemas import (
+    NetworkAnalyzeRequest,
+    NetworkAnalyzeResponse,
+    PredictRequest,
+    PredictResponse,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,3 +114,24 @@ def predict(payload: PredictRequest) -> PredictResponse:
         threshold=result.threshold,
         normalized_text=result.normalized_text,
     )
+
+
+@app.post("/network/analyze", response_model=NetworkAnalyzeResponse, tags=["network-analysis"])
+def analyze_network(payload: NetworkAnalyzeRequest) -> NetworkAnalyzeResponse:
+    if not payload.transactions:
+        raise HTTPException(status_code=422, detail="Transaction list cannot be empty.")
+
+    try:
+        result = analyze_transaction_network(
+            payload.transactions,
+            dataset_name=payload.dataset_name,
+        )
+    except ValueError as ve:
+        logger.warning("Validation error during network analysis: %s", ve)
+        raise HTTPException(status_code=422, detail=str(ve)) from ve
+    except Exception as exc:
+        logger.error("Network GCN inference failure: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Network GCN processing error.") from exc
+
+    return NetworkAnalyzeResponse(**result)
+

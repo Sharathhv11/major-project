@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { analyzeMessage } = require("../controllers/fraudController");
+const { analyzeMessage, analyzeNetworkTransactions } = require("../controllers/fraudController");
 const { protect } = require("../middlewares/authMiddleware");
 const { body } = require("express-validator");
 
@@ -23,5 +23,10 @@ const analyzeValidation = [
 // Fraud analysis route (open to mobile client for real-time background protection)
 // ---------------------------------------------------------------------------
 router.post("/analyze", analyzeValidation, analyzeMessage);
+
+// ---------------------------------------------------------------------------
+// Transaction Network Fraud Analysis route (GCN multi-hop graph processing)
+// ---------------------------------------------------------------------------
+router.post("/analyze-network", analyzeNetworkTransactions);
 
 module.exports = router;

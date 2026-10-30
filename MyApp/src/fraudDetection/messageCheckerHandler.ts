@@ -161,13 +161,28 @@ export async function checkMessageForFraud(rawText: string): Promise<MessageChec
         throw new Error(response.message || 'Fraud analysis service returned an invalid response');
       }
 
-      const { mlResult, threshold: backendThreshold } = response.data;
-      const effectiveThreshold = backendThreshold ?? 0.70;
+      const { mlResult, threshold: backendThreshold, mlAvailable } = response.data;
 
-      riskScore = mlResult ? mlResult.fraudScore : 0;
-      classification = mlResult
-        ? mlResult.prediction || (mlResult.isFraud ? 'FRAUD' : 'NOT_FRAUD')
-        : 'NOT_FRAUD';
+      // Requirement 6: If model fails or is unavailable, never silently classify as safe
+      if (mlAvailable === false || !mlResult) {
+        return {
+          state: 'ERROR',
+          riskScore: 0,
+          scorePercentage: 0,
+          title: 'Unable to check this message',
+          summary:
+            'The AI fraud detection service is currently unavailable. Please check your backend connection and retry.',
+          reasons: [],
+          cached: false,
+          hasUrl: localFilterResult.hasUrl,
+          analyzedText: trimmedText,
+          error: 'ML service unavailable',
+        };
+      }
+
+      const effectiveThreshold = backendThreshold ?? 0.75;
+      riskScore = mlResult.fraudScore;
+      classification = mlResult.prediction || (mlResult.isFraud ? 'FRAUD' : 'NOT_FRAUD');
 
       // Store in local cache
       messageFraudCache.set({
@@ -179,8 +194,6 @@ export async function checkMessageForFraud(rawText: string): Promise<MessageChec
     } catch (apiError: any) {
       console.warn('[FraudShield Checker] Backend analysis error:', apiError?.message || apiError);
 
-      // Section 9: "If the backend/OCR fails: Unable to check this message.
-      // Explain briefly and allow the user to retry. Do not incorrectly classify the message as safe when analysis fails."
       return {
         state: 'ERROR',
         riskScore: 0,
@@ -198,8 +211,8 @@ export async function checkMessageForFraud(rawText: string): Promise<MessageChec
   }
 
   // Determine potential fraud threshold:
-  // Either BERT score >= 0.70, prediction == 'FRAUD', or local keyword filter flagged high risk
-  const isFraud = riskScore >= 0.70 || classification === 'FRAUD';
+  // Calibrated threshold 0.75 or model prediction == 'FRAUD'
+  const isFraud = riskScore >= 0.75 || classification === 'FRAUD';
   const scorePercentage = Math.round(riskScore * 100);
 
   const reasons = extractSupportedReasons(localFilterResult, riskScore, isFraud);
@@ -225,6 +238,22 @@ export async function checkMessageForFraud(rawText: string): Promise<MessageChec
       title: '⚠ Potential Fraud',
       summary: 'This message contains several signs commonly associated with scams.',
       reasons,
+      cached: isCached,
+      hasUrl: localFilterResult.hasUrl,
+      analyzedText: trimmedText,
+    };
+  }
+
+  // Legitimate Security Advisory
+  if (localFilterResult.isSecurityAwareness) {
+    return {
+      state: 'LIKELY_SAFE',
+      riskScore,
+      scorePercentage,
+      title: '✓ Verified Security Advisory',
+      summary:
+        'This message is an educational bank security notice instructing users to protect their credentials.',
+      reasons: reasons.length > 0 ? reasons : ['Legitimate security awareness instruction'],
       cached: isCached,
       hasUrl: localFilterResult.hasUrl,
       analyzedText: trimmedText,
