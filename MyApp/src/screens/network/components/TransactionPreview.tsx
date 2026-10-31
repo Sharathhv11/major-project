@@ -78,6 +78,16 @@ export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ file }) 
         </View>
       </View>
 
+      {/* Bank Statement Verification Banner */}
+      {file.bankDetected && (
+        <View style={styles.bankBanner}>
+          <Icon name="ShieldCheck" size={14} color="#1D4ED8" />
+          <Text style={styles.bankBannerText}>
+            Verified Statement: {file.bankDetected} • {file.extractionMethod || 'PDF Text Stream'} • Account Holder: user1
+          </Text>
+        </View>
+      )}
+
       {isExpanded && (
         <View style={styles.tableContainer}>
           <Text style={styles.tableHeaderNote}>
@@ -130,6 +140,22 @@ export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ file }) 
                   <Text style={styles.timeText}>{row.timestamp}</Text>
                 </View>
 
+                {row.direction && (
+                  <View
+                    style={[
+                      styles.directionPill,
+                      row.direction === 'DEBIT' ? styles.directionDebit : styles.directionCredit,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.directionPillText,
+                        row.direction === 'DEBIT' ? { color: '#B91C1C' } : { color: '#047857' },
+                      ]}>
+                      {row.direction === 'DEBIT' ? 'Outgoing' : 'Incoming'}
+                    </Text>
+                  </View>
+                )}
+
                 {row.flagged ? (
                   <View style={styles.flagBadge}>
                     <Icon name="AlertTriangle" size={11} color={Colors.error} />
@@ -142,6 +168,19 @@ export const TransactionPreview: React.FC<TransactionPreviewProps> = ({ file }) 
                   </View>
                 )}
               </View>
+
+              {row.rawDescription && (
+                <View style={styles.descriptionRow}>
+                  <Text style={styles.descriptionText} numberOfLines={1}>
+                    {row.rawDescription}
+                  </Text>
+                  {row.runningBalance !== null && row.runningBalance !== undefined && (
+                    <Text style={styles.balText}>
+                      Bal: ₹{row.runningBalance.toLocaleString('en-IN')}
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
           ))}
 
@@ -361,6 +400,59 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  bankBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    gap: 6,
+  },
+  bankBannerText: {
+    fontSize: 11,
+    color: '#1E40AF',
+    fontWeight: '600',
+    flex: 1,
+  },
+  directionPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  directionDebit: {
+    backgroundColor: '#FEE2E2',
+  },
+  directionCredit: {
+    backgroundColor: '#D1FAE5',
+  },
+  directionPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  descriptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  descriptionText: {
+    fontSize: 10,
+    color: '#64748B',
+    flex: 1,
+    marginRight: 6,
+  },
+  balText: {
+    fontSize: 10,
+    color: '#475569',
+    fontWeight: '600',
   },
 });
 

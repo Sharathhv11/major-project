@@ -94,6 +94,48 @@ export interface GcnNetworkAnalysisResponse {
   message?: string;
 }
 
+// ─── Bank Statement PDF Extraction Types ─────────────────────────────────────
+
+export interface ExtractedStatementTx {
+  id?: string;
+  source_id: string; // e.g. "user1" for account holder
+  target_id: string; // e.g. "user2" for recipient/sender
+  amount: number;
+  timestamp: string; // ISO 8601: "YYYY-MM-DDTHH:mm:ss" or "YYYY-MM-DD"
+  channel:
+    | 'UPI'
+    | 'NEFT'
+    | 'IMPS'
+    | 'RTGS'
+    | 'ATM'
+    | 'CARD'
+    | 'BANK_TRANSFER'
+    | 'CASH'
+    | 'UNKNOWN';
+  direction: 'DEBIT' | 'CREDIT';
+  rawDescription?: string;
+  runningBalance?: number | null;
+  refNo?: string | null;
+}
+
+export interface StatementExtractionMetadata {
+  filename: string;
+  extractionMethod: 'PDF_TEXT_PARSER' | 'TESSERACT_OCR' | 'TEXT_PARSER';
+  bankDetected: string;
+  totalTransactions: number;
+  accountHolderId: 'user1';
+  extractedAt: string;
+}
+
+export interface StatementExtractionResponse {
+  success: boolean;
+  metadata: StatementExtractionMetadata;
+  transactions: ExtractedStatementTx[];
+  csvData: string;
+  entityMapping: Record<string, string>;
+  message?: string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 const FRAUD_BASE = '/api/fraud';
@@ -123,6 +165,38 @@ const fraudApi = {
     const response = await apiClient.post<GcnNetworkAnalysisResponse>(
       `${FRAUD_BASE}/analyze-network`,
       { transactions, datasetName },
+    );
+    return response.data;
+  },
+
+  /**
+   * POST /api/fraud/extract-statement
+   * Uploads and parses bank statement (PDF, base64, or simulated raw text).
+   * Supports Canara Bank and standard Indian bank formats with OCR fallback.
+   * Ensures 'user1' is assigned to account holder and counterparties are anonymized.
+   */
+  extractBankStatement: async (payload: {
+    pdfBase64?: string;
+    sampleType?: 'canara' | 'fraud_mule' | 'general';
+    rawText?: string;
+    filename?: string;
+    formData?: any;
+  }): Promise<StatementExtractionResponse> => {
+    if (payload.formData) {
+      const response = await apiClient.post<StatementExtractionResponse>(
+        `${FRAUD_BASE}/extract-statement`,
+        payload.formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+      return response.data;
+    }
+    const response = await apiClient.post<StatementExtractionResponse>(
+      `${FRAUD_BASE}/extract-statement`,
+      payload,
     );
     return response.data;
   },

@@ -203,8 +203,101 @@ const analyzeNetworkTransactions = async (req, res, next) => {
   }
 };
 
+const {
+  parseBankStatementBuffer,
+  getPreconfiguredSampleStatement,
+  extractTransactionsFromText,
+} = require("../services/bankStatementParser");
+
+// ==========================================================================
+// @desc    Extract and normalize transactions from uploaded PDF bank statement
+// @route   POST /api/fraud/extract-statement
+// @access  Public / Mobile client
+// ==========================================================================
+const extractBankStatementTransactions = async (req, res, next) => {
+  try {
+    const { sampleType, rawText, pdfBase64, filename } = req.body || {};
+
+    // 1. Check for preset sample statement request (e.g. Canara Bank demo)
+    if (sampleType) {
+      console.log(`📄 Generating preconfigured sample statement (${sampleType})...`);
+      const sampleResult = getPreconfiguredSampleStatement(sampleType);
+      return res.status(200).json(sampleResult);
+    }
+
+    // 2. Check for pasted raw text from statement
+    if (rawText && typeof rawText === "string" && rawText.trim().length > 20) {
+      console.log("📄 Extracting transactions from raw statement text...");
+      const textResult = extractTransactionsFromText(rawText);
+      return res.status(200).json({
+        success: true,
+        metadata: {
+          filename: filename || "pasted_statement.txt",
+          extractionMethod: "TEXT_PARSER",
+          bankDetected: textResult.detectedBank,
+          totalTransactions: textResult.totalCount,
+          accountHolderId: "user1",
+          extractedAt: new Date().toISOString(),
+        },
+        transactions: textResult.transactions,
+        csvData: textResult.csvData,
+        entityMapping: textResult.entityMapping,
+      });
+    }
+
+    // 3. Obtain statement file buffer from multipart upload or base64
+    let fileBuffer = null;
+    let originalName = "bank_statement.pdf";
+
+    if (req.file && req.file.buffer) {
+      fileBuffer = req.file.buffer;
+      originalName = req.file.originalname || "uploaded_statement.pdf";
+    } else if (pdfBase64 && typeof pdfBase64 === "string") {
+      fileBuffer = Buffer.from(pdfBase64, "base64");
+      originalName = filename || "uploaded_statement.pdf";
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please upload a PDF bank statement file, provide a base64 encoded PDF, or select a sample statement.",
+      });
+    }
+
+    // Security check: Limit file size to 10MB
+    if (fileBuffer.length > 10 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        message: "File exceeds maximum size limit of 10MB.",
+      });
+    }
+
+    console.log(`📄 Processing bank statement PDF: ${originalName} (${(fileBuffer.length / 1024).toFixed(1)} KB)...`);
+
+    // Parse the PDF with OCR fallback if needed
+    const parsedData = await parseBankStatementBuffer(fileBuffer, originalName);
+
+    console.log(
+      `✅ Bank statement parsed: ${parsedData.metadata.totalTransactions} transactions extracted (${parsedData.metadata.bankDetected})`
+    );
+
+    // Explicitly nullify buffer for rapid garbage collection & privacy
+    fileBuffer = null;
+
+    return res.status(200).json(parsedData);
+  } catch (err) {
+    console.error("⚠️ Error extracting bank statement:", err.message);
+    return res.status(422).json({
+      success: false,
+      message: err.message || "Failed to parse bank statement PDF.",
+    });
+  }
+};
+
 module.exports = {
   analyzeMessage,
   analyzeNetworkTransactions,
+  extractBankStatementTransactions,
 };
 

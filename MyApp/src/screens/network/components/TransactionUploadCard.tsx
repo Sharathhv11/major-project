@@ -22,14 +22,17 @@ import {
 } from 'react-native';
 import Icon from '../../../components/Icon';
 import { Colors, Shadows, Spacing } from '../../../theme/theme';
+import { PdfBankStatementModal } from './PdfBankStatementModal';
 
 export interface SelectedTransactionFile {
   name: string;
   size: string;
   transactionCount: number;
   entitiesCount: number;
-  format: 'CSV' | 'JSON';
+  format: 'CSV' | 'JSON' | 'PDF';
   columns: string[];
+  bankDetected?: string;
+  extractionMethod?: string;
   sampleData: Array<{
     id: string;
     source: string;
@@ -38,6 +41,9 @@ export interface SelectedTransactionFile {
     timestamp: string;
     type: string;
     flagged?: boolean;
+    rawDescription?: string;
+    direction?: 'DEBIT' | 'CREDIT';
+    runningBalance?: number | null;
   }>;
 }
 
@@ -116,6 +122,7 @@ export const TransactionUploadCard: React.FC<TransactionUploadCardProps> = ({
   const [pastedData, setPastedData] = useState<string>('');
   const [customFileName, setCustomFileName] = useState<string>('my_transactions.csv');
   const [parseError, setParseError] = useState<string | null>(null);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
 
   // Parse raw text into structured SelectedTransactionFile
   const handleParseAndLoad = () => {
@@ -258,6 +265,37 @@ export const TransactionUploadCard: React.FC<TransactionUploadCardProps> = ({
 
       {!selectedFile ? (
         <View>
+          {/* ─── Feature: Upload Bank Statement (PDF) Button ────────── */}
+          <TouchableOpacity
+            style={styles.pdfHeroButton}
+            activeOpacity={0.85}
+            onPress={() => setIsPdfModalOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Upload Bank Statement (PDF)">
+            <View style={styles.pdfHeroIconBox}>
+              <Icon name="FileText" size={22} color="#FFFFFF" strokeWidth={2.4} />
+            </View>
+            <View style={styles.pdfHeroTextBox}>
+              <View style={styles.pdfHeroTitleRow}>
+                <Text style={styles.pdfHeroTitle}>Upload Bank Statement (PDF)</Text>
+                <View style={styles.pdfHeroBadge}>
+                  <Text style={styles.pdfHeroBadgeText}>Canara & OCR</Text>
+                </View>
+              </View>
+              <Text style={styles.pdfHeroSubtitle}>
+                Auto-extract UPI, NEFT, debits & credits with privacy anonymization
+              </Text>
+            </View>
+            <Icon name="ChevronRight" size={18} color="#2563EB" />
+          </TouchableOpacity>
+
+          {/* Or Divider */}
+          <View style={styles.orDividerRow}>
+            <View style={styles.orDividerLine} />
+            <Text style={styles.orDividerText}>OR SELECT LEDGER</Text>
+            <View style={styles.orDividerLine} />
+          </View>
+
           {/* Mode Switcher Tabs */}
           <View style={styles.modeTabsRow}>
             <TouchableOpacity
@@ -452,6 +490,14 @@ export const TransactionUploadCard: React.FC<TransactionUploadCardProps> = ({
                   <Icon name="CheckCircle2" size={12} color={Colors.successDark} strokeWidth={2.4} />
                   <Text style={styles.badgeSuccessText}>Ready for GCN Graph Processing</Text>
                 </View>
+                {selectedFile.bankDetected && (
+                  <View style={styles.badgeBankVerified}>
+                    <Icon name="ShieldCheck" size={12} color="#1D4ED8" strokeWidth={2.4} />
+                    <Text style={styles.badgeBankVerifiedText}>
+                      {selectedFile.bankDetected} (user1 Anonymized)
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -479,6 +525,13 @@ export const TransactionUploadCard: React.FC<TransactionUploadCardProps> = ({
           </View>
         </View>
       )}
+
+      {/* PDF Bank Statement Importer Modal */}
+      <PdfBankStatementModal
+        visible={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        onConfirmExtraction={onSelectFile}
+      />
     </View>
   );
 };
@@ -804,6 +857,91 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#334155',
     fontWeight: '500',
+  },
+  // PDF Bank Statement Hero Button Styles
+  pdfHeroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    marginBottom: 12,
+  },
+  pdfHeroIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#2563EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  pdfHeroTextBox: {
+    flex: 1,
+    marginRight: 6,
+  },
+  pdfHeroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  pdfHeroTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E3A8A',
+  },
+  pdfHeroBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  pdfHeroBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  pdfHeroSubtitle: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 15,
+  },
+  orDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  orDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  orDividerText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  badgeBankVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginLeft: 6,
+  },
+  badgeBankVerifiedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
 });
 
