@@ -133,3 +133,36 @@ export const reportManualScanResult = async (result: any): Promise<boolean> => {
     return false;
   }
 };
+
+export interface SimulatePermissionParams {
+  domain: string;
+  url?: string;
+  permissionType: 'camera' | 'microphone' | 'location' | string;
+  trustLevel?: 'VERIFIED' | 'SUSPICIOUS' | 'UNKNOWN' | string;
+  browser?: string;
+  explanation?: string;
+}
+
+export const simulateWebsitePermissionAlert = async (
+  params: SimulatePermissionParams,
+): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.simulateWebsitePermissionAlert) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.simulateWebsitePermissionAlert(params);
+  } catch {
+    return false;
+  }
+};
+
+export const dismissPermissionOverlay = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || !AccessibilityBridgeModule || !AccessibilityBridgeModule.dismissPermissionOverlay) {
+    return false;
+  }
+  try {
+    return await AccessibilityBridgeModule.dismissPermissionOverlay();
+  } catch {
+    return false;
+  }
+};

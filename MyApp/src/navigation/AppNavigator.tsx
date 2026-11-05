@@ -26,6 +26,7 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import AssistantChatScreen from '../screens/assistant/AssistantChatScreen';
 import NetworkAnalysisScreen from '../screens/network/NetworkAnalysisScreen';
+import PermissionSecurityScreen from '../screens/permissions/PermissionSecurityScreen';
 import { Colors, Typography, Spacing, Shadows } from '../theme/theme';
 import Icon, { IconName } from '../components/Icon';
 
@@ -40,6 +41,10 @@ export interface AssistantChatParams {
     riskScore?: number;
     reasons?: string[];
     safePreview?: string;
+    permissionType?: string;
+    domain?: string;
+    trustLevel?: string;
+    browser?: string;
   };
   initialPrompt?: string;
 }
@@ -49,8 +54,15 @@ export type HomeStackParamList = {
   MessageChecker?: { initialMode?: 'paste' | 'upload' };
   DetectionHistory: undefined;
   Profile: undefined;
+  EditProfile: undefined;
   AssistantChat?: AssistantChatParams;
   NetworkAnalysis?: undefined;
+  PermissionSecurity: undefined;
+};
+
+export type ProfileStackParamList = {
+  Profile: undefined;
+  EditProfile: undefined;
 };
 
 export type CheckStackParamList = {
@@ -68,6 +80,7 @@ export type SettingsStackParamList = {
   ChangePassword: undefined;
   Profile: undefined;
   EditProfile: undefined;
+  PermissionSecurity: undefined;
 };
 
 // ─── Tab Icon Component ─────────────────────────────────────────────────────
@@ -131,6 +144,11 @@ const HomeStackScreen: React.FC = () => (
       options={{ title: 'My Profile', headerBackTitle: 'Home' }}
     />
     <HomeStack.Screen
+      name="EditProfile"
+      component={EditProfileScreen}
+      options={{ title: 'Edit Profile', headerBackTitle: 'Profile' }}
+    />
+    <HomeStack.Screen
       name="AssistantChat"
       component={AssistantChatScreen}
       options={{ headerShown: false }}
@@ -139,6 +157,11 @@ const HomeStackScreen: React.FC = () => (
       name="NetworkAnalysis"
       component={NetworkAnalysisScreen}
       options={{ title: 'Network Analysis', headerBackTitle: 'Home' }}
+    />
+    <HomeStack.Screen
+      name="PermissionSecurity"
+      component={PermissionSecurityScreen}
+      options={{ headerShown: false }}
     />
   </HomeStack.Navigator>
 );
@@ -206,6 +229,11 @@ const SettingsStackScreen: React.FC = () => (
       name="EditProfile"
       component={EditProfileScreen}
       options={{ title: 'Edit Profile', headerBackTitle: 'Profile' }}
+    />
+    <SettingsStack.Screen
+      name="PermissionSecurity"
+      component={PermissionSecurityScreen}
+      options={{ headerShown: false }}
     />
   </SettingsStack.Navigator>
 );

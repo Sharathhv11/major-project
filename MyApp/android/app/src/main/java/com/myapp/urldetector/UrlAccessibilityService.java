@@ -18,18 +18,22 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * UrlAccessibilityService
  *
- * Android AccessibilityService implemented in pure Java.
+ * Android AccessibilityService implemented in pure Java:
  * 1. Inspects visible node trees to detect unencrypted HTTP URLs and trigger overlay alerts.
- * 2. Reads on-screen text messages from active applications (excluding our own app and active keyboard typing)
- *    from BOTTOM to TOP (prioritizing the newest incoming messages at the bottom of WhatsApp/SMS)
- *    and forwards them directly to the React Native bridge for AI fraud score evaluation.
- * 3. Provides on-demand accessible text extraction for the FraudShield floating manual scanner.
+ * 2. Monitors web browsers (Google Chrome, Edge, Samsung Internet, Firefox, Brave, etc.)
+ *    for sensitive permission requests (Camera, Microphone, Precise & Approximate Location).
+ * 3. Reads on-screen text messages from active messaging applications (WhatsApp, SMS, Google Messages)
+ *    prioritizing recent messages for AI fraud evaluation.
+ * 4. Provides on-demand accessible text extraction for the FraudShield manual scanner.
  */
 public class UrlAccessibilityService extends AccessibilityService {
 
@@ -49,7 +53,6 @@ public class UrlAccessibilityService extends AccessibilityService {
 
     // Duplicate suppression window for URLs (3 seconds cooldown)
     private static final long URL_COOLDOWN_MS = 3000;
-
     private String lastDetectedUrl = "";
     private long lastDetectedTimestamp = 0;
 
@@ -65,6 +68,39 @@ public class UrlAccessibilityService extends AccessibilityService {
                 }
             });
 
+    // Cooldown cache for detected website permission requests (8-second deduplication)
+    private static final long PERMISSION_COOLDOWN_MS = 8000;
+    private static final Map<String, Long> sSeenPermissions =
+            Collections.synchronizedMap(new LinkedHashMap<String, Long>(MAX_CACHE_SIZE, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
+                    return size() > MAX_CACHE_SIZE;
+                }
+            });
+
+    // Known trusted domain list for instant trust level assessment
+    private static final Set<String> TRUSTED_DOMAINS = new HashSet<>();
+    static {
+        TRUSTED_DOMAINS.add("google.com");
+        TRUSTED_DOMAINS.add("meet.google.com");
+        TRUSTED_DOMAINS.add("zoom.us");
+        TRUSTED_DOMAINS.add("teams.microsoft.com");
+        TRUSTED_DOMAINS.add("webex.com");
+        TRUSTED_DOMAINS.add("canarabank.in");
+        TRUSTED_DOMAINS.add("onlinesbi.sbi");
+        TRUSTED_DOMAINS.add("hdfcbank.com");
+        TRUSTED_DOMAINS.add("icicibank.com");
+        TRUSTED_DOMAINS.add("axisbank.com");
+        TRUSTED_DOMAINS.add("github.com");
+        TRUSTED_DOMAINS.add("wikipedia.org");
+        TRUSTED_DOMAINS.add("apple.com");
+        TRUSTED_DOMAINS.add("microsoft.com");
+        TRUSTED_DOMAINS.add("youtube.com");
+    }
+
+    private static final Pattern DOMAIN_PATTERN =
+            Pattern.compile("(?i)(?:https?://)?(?:www\\.)?([a-zA-Z0-9][-a-zA-Z0-9]*\\.[a-zA-Z]{2,}(?::\\d+)?)(?:/[^\\s]*)?");
+
     /**
      * Internal representation of on-screen text elements with screen coordinates
      * used for bottom-to-top traversal sorting.
@@ -72,14 +108,16 @@ public class UrlAccessibilityService extends AccessibilityService {
     private static class NodeTextElement {
         final String text;
         final String description;
+        final String viewId;
         final int bottomY;
         final int topY;
         final boolean isEditable;
         final boolean isEditText;
 
-        NodeTextElement(String text, String description, int bottomY, int topY, boolean isEditable, boolean isEditText) {
+        NodeTextElement(String text, String description, String viewId, int bottomY, int topY, boolean isEditable, boolean isEditText) {
             this.text = text;
             this.description = description;
+            this.viewId = viewId;
             this.bottomY = bottomY;
             this.topY = topY;
             this.isEditable = isEditable;
@@ -106,6 +144,12 @@ public class UrlAccessibilityService extends AccessibilityService {
                 // Never analyze our own app
                 String myPackage = getApplicationContext().getPackageName();
                 if (!myPackage.equals(packageName)) {
+                    // 1. If active app is a browser, inspect for website permission requests
+                    if (isBrowserApp(packageName)) {
+                        inspectBrowserForPermissions(rootNode, packageName);
+                    }
+
+                    // 2. Inspect window text bottom-to-top for HTTP URLs and fraud messages
                     inspectWindowBottomToTop(rootNode, packageName);
                 }
                 rootNode.recycle();
@@ -113,6 +157,223 @@ public class UrlAccessibilityService extends AccessibilityService {
         } catch (Exception ignored) {
             // Defensive: ensure accessibility event processing never throws unhandled crashes
         }
+    }
+
+    /**
+     * Checks if the package corresponds to a supported browser application.
+     */
+    private boolean isBrowserApp(String packageName) {
+        if (packageName == null || packageName.isEmpty()) {
+            return false;
+        }
+        String pkgLower = packageName.toLowerCase(Locale.ROOT);
+        return pkgLower.contains("chrome") ||
+               pkgLower.contains("browser") ||
+               pkgLower.contains("firefox") ||
+               pkgLower.contains("opera") ||
+               pkgLower.equals("com.sec.android.app.sbrowser") ||
+               pkgLower.equals("com.microsoft.emmx") ||
+               pkgLower.equals("com.brave.browser") ||
+               pkgLower.equals("com.kiwibrowser.browser") ||
+               pkgLower.equals("com.google.android.browser") ||
+               pkgLower.equals("com.android.browser");
+    }
+
+    /**
+     * Inspects browser window for permission dialogs requesting Camera, Microphone, or Location.
+     */
+    private void inspectBrowserForPermissions(AccessibilityNodeInfo rootNode, String packageName) {
+        if (rootNode == null) {
+            return;
+        }
+
+        List<NodeTextElement> elements = new ArrayList<>();
+        collectTextElements(rootNode, elements);
+
+        if (elements.isEmpty()) {
+            return;
+        }
+
+        String matchedPromptText = null;
+        String permissionType = null;
+        String addressBarUrl = null;
+
+        // Traverse elements to detect permission prompt phrases and browser address bar
+        for (NodeTextElement el : elements) {
+            String text = el.text != null ? el.text.trim() : "";
+            String lower = text.toLowerCase(Locale.ROOT);
+            String viewId = el.viewId != null ? el.viewId.toLowerCase(Locale.ROOT) : "";
+
+            // Check for browser URL bar to capture the active website
+            if (addressBarUrl == null) {
+                if (viewId.contains("url_bar") || viewId.contains("location_bar") || viewId.contains("address")) {
+                    addressBarUrl = text;
+                } else if (text.startsWith("http://") || text.startsWith("https://")) {
+                    addressBarUrl = text;
+                }
+            }
+
+            // Check for permission prompt phrasing
+            boolean isCamera = lower.contains("camera") || lower.contains("take pictures") || lower.contains("record video");
+            boolean isMic = lower.contains("microphone") || lower.contains("record audio") || lower.contains("mic");
+            boolean isLocation = lower.contains("location") || lower.contains("know your location") || lower.contains("device's location");
+
+            boolean isPrompt = lower.contains("wants to") ||
+                               lower.contains("permission") ||
+                               lower.contains("allow") ||
+                               lower.contains("access to") ||
+                               lower.contains("requesting access");
+
+            if (isPrompt && (isCamera || isMic || isLocation)) {
+                matchedPromptText = text;
+                if (isCamera && isMic) {
+                    permissionType = "camera & microphone";
+                } else if (isCamera) {
+                    permissionType = "camera";
+                } else if (isMic) {
+                    permissionType = "microphone";
+                } else {
+                    permissionType = "location";
+                }
+                break;
+            }
+        }
+
+        if (matchedPromptText == null || permissionType == null) {
+            return;
+        }
+
+        // Extract domain from prompt text or address bar
+        String domain = extractDomain(matchedPromptText);
+        if (domain == null && addressBarUrl != null) {
+            domain = extractDomain(addressBarUrl);
+        }
+        if (domain == null) {
+            domain = "Active Website";
+        }
+
+        String fullUrl = addressBarUrl != null ? addressBarUrl : ("https://" + domain);
+
+        // Deduplication & Debouncing check
+        long now = System.currentTimeMillis();
+        String cacheKey = domain.toLowerCase(Locale.ROOT) + "#" + permissionType;
+        Long lastSeen = sSeenPermissions.get(cacheKey);
+        if (lastSeen != null && (now - lastSeen < PERMISSION_COOLDOWN_MS)) {
+            return;
+        }
+        sSeenPermissions.put(cacheKey, now);
+
+        // Evaluate Trust Level
+        String trustLevel = evaluateTrustLevel(domain, fullUrl);
+
+        // Generate tailored educational security explanation
+        String explanation = buildPermissionExplanation(permissionType, domain, trustLevel);
+
+        String browserFriendlyName = getFriendlyBrowserName(packageName);
+
+        Log.i(TAG, "🛡️ Detected Website Permission Request: " + permissionType + " on " + domain + " (" + trustLevel + ")");
+
+        // 1. Emit event to React Native bridge for history logging & active UI update
+        try {
+            ReactApplicationContext reactContext = AccessibilityBridgeModule.getReactContextInstance();
+            if (reactContext != null) {
+                WritableMap event = Arguments.createMap();
+                event.putString("domain", domain);
+                event.putString("url", fullUrl);
+                event.putString("permissionType", permissionType);
+                event.putString("trustLevel", trustLevel);
+                event.putString("browser", browserFriendlyName);
+                event.putString("explanation", explanation);
+                event.putDouble("timestamp", now);
+
+                reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit("onWebsitePermissionRequest", event);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error emitting website permission event to React Native", e);
+        }
+
+        // 2. Display non-intrusive native FraudShield security overlay
+        OverlayManager overlayManager = OverlayManager.getInstance(getApplicationContext());
+        overlayManager.showWebsitePermissionAlert(domain, fullUrl, permissionType, trustLevel, explanation, browserFriendlyName);
+    }
+
+    /**
+     * Extracts domain name from a URL or prompt string.
+     */
+    private String extractDomain(String text) {
+        if (TextUtils.isEmpty(text)) return null;
+        Matcher m = DOMAIN_PATTERN.matcher(text);
+        if (m.find()) {
+            String domain = m.group(1);
+            if (!TextUtils.isEmpty(domain)) {
+                // Filter out common false-positive words
+                String dLower = domain.toLowerCase(Locale.ROOT);
+                if (!dLower.equals("wants.to") && !dLower.equals("allow.to") && dLower.contains(".")) {
+                    return domain;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Evaluates domain trust level (VERIFIED vs SUSPICIOUS vs UNKNOWN).
+     */
+    private String evaluateTrustLevel(String domain, String url) {
+        if (domain == null) return "UNKNOWN";
+        String dLower = domain.toLowerCase(Locale.ROOT);
+
+        // Check if unencrypted HTTP
+        if (url != null && url.startsWith("http://")) {
+            return "SUSPICIOUS";
+        }
+
+        // Check known trusted list
+        for (String trusted : TRUSTED_DOMAINS) {
+            if (dLower.equals(trusted) || dLower.endsWith("." + trusted)) {
+                return "VERIFIED";
+            }
+        }
+
+        // Check IP address or obvious phishing keywords
+        if (domain.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$") ||
+            dLower.contains("kyc-") ||
+            dLower.contains("free-prize") ||
+            dLower.contains("reward-claim")) {
+            return "SUSPICIOUS";
+        }
+
+        return "UNKNOWN";
+    }
+
+    /**
+     * Builds educational, non-alarmist explanation tailored to the requested permission.
+     */
+    private String buildPermissionExplanation(String permissionType, String domain, String trustLevel) {
+        String perm = permissionType != null ? permissionType.toLowerCase(Locale.ROOT) : "";
+
+        if (perm.contains("camera")) {
+            return "Camera permission allows this website to stream video and capture photos while the page is open. Legitimate sites use this for video calls or KYC verification. Be cautious if an unfamiliar website asks for camera access.";
+        } else if (perm.contains("mic") || perm.contains("audio")) {
+            return "Microphone permission allows this website to record room audio and conversations. While normal for voice calls, unverified sites can harvest ambient audio without your awareness.";
+        } else if (perm.contains("location")) {
+            return "Location permission shares your precise physical GPS coordinates. Normal for maps, delivery, and branch finders, but unknown websites can use it for physical profiling and ad-tracking.";
+        } else {
+            return "This website is requesting access to sensitive device sensors. Always consider whether this site genuinely requires this access before granting.";
+        }
+    }
+
+    private String getFriendlyBrowserName(String packageName) {
+        if (packageName == null) return "Browser";
+        String p = packageName.toLowerCase(Locale.ROOT);
+        if (p.contains("chrome")) return "Google Chrome";
+        if (p.contains("sbrowser")) return "Samsung Internet";
+        if (p.contains("firefox")) return "Mozilla Firefox";
+        if (p.contains("emmx")) return "Microsoft Edge";
+        if (p.contains("brave")) return "Brave Browser";
+        if (p.contains("opera")) return "Opera Browser";
+        return "Web Browser";
     }
 
     /**
@@ -182,6 +443,7 @@ public class UrlAccessibilityService extends AccessibilityService {
 
             CharSequence textSeq = node.getText();
             CharSequence descSeq = node.getContentDescription();
+            String viewId = node.getViewIdResourceName();
 
             String text = (textSeq != null && textSeq.length() > 0) ? textSeq.toString() : null;
             String desc = (descSeq != null && descSeq.length() > 0) ? descSeq.toString() : null;
@@ -189,10 +451,9 @@ public class UrlAccessibilityService extends AccessibilityService {
             if (text != null || desc != null) {
                 Rect bounds = new Rect();
                 node.getBoundsInScreen(bounds);
-                elements.add(new NodeTextElement(text, desc, bounds.bottom, bounds.top, isEditable, isEditText));
+                elements.add(new NodeTextElement(text, desc, viewId, bounds.bottom, bounds.top, isEditable, isEditText));
             }
 
-            // Traverse child nodes in reverse order (bottom-most child first)
             int childCount = node.getChildCount();
             for (int i = childCount - 1; i >= 0; i--) {
                 AccessibilityNodeInfo child = node.getChild(i);
@@ -207,20 +468,17 @@ public class UrlAccessibilityService extends AccessibilityService {
 
     /**
      * Checks if the package corresponds to WhatsApp or an SMS/Messaging application.
-     * Restricts screen text inspection strictly to these target communication channels.
      */
     private boolean isWhatsAppOrMessagingApp(String packageName) {
         if (packageName == null || packageName.isEmpty()) {
             return false;
         }
-        String pkgLower = packageName.toLowerCase();
+        String pkgLower = packageName.toLowerCase(Locale.ROOT);
 
-        // 1. WhatsApp / WhatsApp Business
         if (pkgLower.contains("whatsapp")) {
             return true;
         }
 
-        // 2. SMS and standard messaging applications (Google Messages, Samsung, AOSP, OEM MMS apps)
         if (pkgLower.contains("messaging") ||
             pkgLower.contains("mms") ||
             pkgLower.contains("message") ||
@@ -236,13 +494,11 @@ public class UrlAccessibilityService extends AccessibilityService {
 
     /**
      * Forwards on-screen text directly to React Native to evaluate with the AI model.
-     * Restricted strictly to WhatsApp and SMS/Messages apps.
      */
     private void processScreenTextForFraud(CharSequence text, String packageName) {
         if (text == null || !isWhatsAppOrMessagingApp(packageName)) return;
         String textString = text.toString().trim();
 
-        // Skip very short strings (single words, symbols, timestamps) to avoid spamming the model
         if (textString.length() < 10) {
             return;
         }
@@ -265,7 +521,6 @@ public class UrlAccessibilityService extends AccessibilityService {
 
                 reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                         .emit("onIncomingMessage", event);
-                Log.i(TAG, "Forwarded screen text to AI fraud engine: " + (textString.length() > 50 ? textString.substring(0, 50) + "..." : textString));
             }
         } catch (Exception e) {
             Log.e(TAG, "Error emitting screen text to JS", e);
@@ -293,21 +548,17 @@ public class UrlAccessibilityService extends AccessibilityService {
                 continue;
             }
 
-            // 1. Check if this URL or alerts are currently snoozed
             if (overlayManager.isSnoozed(url)) {
                 continue;
             }
 
-            // 2. Duplicate cooldown check: ignore identical URL within cooldown window
             if (url.equals(lastDetectedUrl) && (now - lastDetectedTimestamp < URL_COOLDOWN_MS)) {
                 continue;
             }
 
-            // Record latest detection
             lastDetectedUrl = url;
             lastDetectedTimestamp = now;
 
-            // Trigger immediate native overlay over active app
             overlayManager.showOverlay(url);
             break;
         }
@@ -316,7 +567,6 @@ public class UrlAccessibilityService extends AccessibilityService {
     /**
      * Extracts currently visible, readable text snippets from the active window
      * on-demand for manual scanning in the FraudShield floating bot.
-     * Does NOT continuously monitor; only triggered explicitly upon user tap.
      */
     public List<String> getVisibleScreenTexts() {
         List<String> result = new ArrayList<>();
@@ -330,7 +580,6 @@ public class UrlAccessibilityService extends AccessibilityService {
             collectTextElements(rootNode, elements);
             rootNode.recycle();
 
-            // Sort bottom-to-top so most recent messages / primary content appears first
             Collections.sort(elements, new Comparator<NodeTextElement>() {
                 @Override
                 public int compare(NodeTextElement a, NodeTextElement b) {
@@ -342,7 +591,6 @@ public class UrlAccessibilityService extends AccessibilityService {
             for (NodeTextElement el : elements) {
                 if (el.text != null) {
                     String trimmed = el.text.trim();
-                    // Ignore single-character symbols or empty text
                     if (trimmed.length() >= 4 && !seen.contains(trimmed)) {
                         seen.add(trimmed);
                         result.add(trimmed);
@@ -355,9 +603,6 @@ public class UrlAccessibilityService extends AccessibilityService {
         return result;
     }
 
-    /**
-     * Returns the package name of the active foreground window.
-     */
     public String getActivePackageName() {
         try {
             AccessibilityNodeInfo rootNode = getRootInActiveWindow();
@@ -373,7 +618,6 @@ public class UrlAccessibilityService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
-        // No-op
     }
 
     @Override

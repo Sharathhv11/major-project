@@ -145,6 +145,48 @@ async function runTests() {
     assert.strictEqual(res.conversationId, testId);
   });
 
+  // Test 11: Website permission explanation (Camera)
+  await test("explains website camera permission request with risk assessment", async () => {
+    const res = await processAssistantChat({
+      message: "Why does this website want my camera?",
+      mode: "detection_explanation",
+      detectionContext: {
+        permissionType: "camera",
+        domain: "videocall-app.com",
+        trustLevel: "UNKNOWN",
+      },
+    });
+    assert.ok(res.response.includes("Camera"));
+    assert.ok(res.response.includes("videocall-app.com"));
+    assert.ok(res.suggestedFollowUps.length > 0);
+  });
+
+  // Test 12: Website permission revocation instructions
+  await test("provides step-by-step Chrome and Android revocation instructions", async () => {
+    const res = await processAssistantChat({
+      message: "How to revoke in Chrome?",
+      mode: "detection_explanation",
+      detectionContext: {
+        permissionType: "microphone",
+        domain: "sample-audio.org",
+        trustLevel: "SUSPICIOUS",
+      },
+    });
+    assert.ok(res.response.includes("Chrome"));
+    assert.ok(res.response.includes("Android"));
+    assert.ok(res.response.includes("sample-audio.org"));
+  });
+
+  // Test 13: General Conversational Greeting
+  await test("handles general greeting warmly without error", async () => {
+    const res = await processAssistantChat({
+      message: "Hello FraudShield",
+      mode: "general_help",
+    });
+    assert.ok(res.response.includes("FraudShield"));
+    assert.strictEqual(res.urgency, "low");
+  });
+
   console.log(`\n========================================`);
   console.log(`Summary: ${passed} passed, ${failed} failed out of ${passed + failed} tests.`);
   console.log(`========================================\n`);

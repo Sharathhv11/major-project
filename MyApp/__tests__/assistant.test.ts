@@ -255,4 +255,48 @@ describe('Conversational Assistant Client & Workflows', () => {
     expect(checkRes.success).toBe(true);
     expect(checkRes.data.mlResult?.prediction).toBe('FRAUD');
   });
+
+  // 8. Website permission request context explanation
+  it('sends website permission context and receives tailored risk explanation', async () => {
+    const permContext: AssistantDetectionContext = {
+      permissionType: 'camera',
+      domain: 'unknown-portal.xyz',
+      trustLevel: 'SUSPICIOUS',
+      browser: 'Google Chrome',
+      safePreview: 'Requested device camera access on unencrypted site',
+    };
+
+    const mockResponse = {
+      data: {
+        success: true,
+        conversationId: 'conv_perm_99',
+        mode: 'detection_explanation',
+        response:
+          'Camera access allows unknown-portal.xyz to stream video while the webpage is open. Because this domain is unverified, granting camera access carries high surveillance risk.',
+        suggestedFollowUps: [
+          'How do I revoke camera permission for unknown-portal.xyz?',
+          'How do I block this in Chrome?',
+        ],
+        actionChecklist: [
+          'Deny camera access on the browser prompt',
+          'Tap lock icon in Chrome to manage site permissions',
+        ],
+        urgency: 'high',
+      },
+    };
+
+    (apiClient.post as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+    const result = await assistantApi.sendMessage({
+      message: 'Why does this website want my camera?',
+      mode: 'detection_explanation',
+      detectionContext: permContext,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.response).toContain('Camera access');
+    expect(result.actionChecklist).toEqual(
+      expect.arrayContaining([expect.stringContaining('Chrome')]),
+    );
+  });
 });

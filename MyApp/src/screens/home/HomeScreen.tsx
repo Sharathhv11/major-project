@@ -231,6 +231,34 @@ export const HomeScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
 
+        {/* ─── Website Permission Protection Feature Card ───────────── */}
+        <TouchableOpacity
+          style={[styles.networkCard, Shadows.card, { marginTop: 10 }]}
+          onPress={() => navigation.navigate('PermissionSecurity')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open Website Permission Protection">
+          <View style={styles.networkCardLeft}>
+            <View style={[styles.networkIconBox, { backgroundColor: '#ECFDF5' }]}>
+              <Icon name="Shield" size={20} color="#10B981" strokeWidth={2.4} />
+            </View>
+            <View style={styles.networkTextCol}>
+              <View style={styles.networkBadgeRow}>
+                <Text style={styles.networkCardTitle}>Website Permissions</Text>
+                <View style={[styles.gcnBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                  <Text style={[styles.gcnBadgeText, { color: '#059669' }]}>GUARD</Text>
+                </View>
+              </View>
+              <Text style={styles.networkCardSubtitle} numberOfLines={1}>
+                Protect camera, mic & location from deceptive websites
+              </Text>
+            </View>
+          </View>
+          <View style={styles.networkArrowBtn}>
+            <Icon name="ChevronRight" size={18} color="#10B981" strokeWidth={2.5} />
+          </View>
+        </TouchableOpacity>
+
         {/* ─── Section D: Recent Detections ─────────────────────────── */}
         <RecentDetectionsSection onViewAll={handleViewHistory} />
 

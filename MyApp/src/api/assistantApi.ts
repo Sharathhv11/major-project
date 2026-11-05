@@ -19,6 +19,10 @@ export interface AssistantDetectionContext {
   riskScore?: number;
   reasons?: string[];
   safePreview?: string;
+  permissionType?: 'camera' | 'microphone' | 'location' | 'camera & microphone' | string;
+  domain?: string;
+  trustLevel?: 'VERIFIED' | 'SUSPICIOUS' | 'UNKNOWN' | string;
+  browser?: string;
 }
 
 export interface AssistantChatPayload {

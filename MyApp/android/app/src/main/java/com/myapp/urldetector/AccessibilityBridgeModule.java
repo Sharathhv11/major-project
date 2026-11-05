@@ -206,4 +206,34 @@ public class AccessibilityBridgeModule extends ReactContextBaseJavaModule {
             promise.reject("RESULT_ERROR", e.getMessage());
         }
     }
+
+    @ReactMethod
+    public void simulateWebsitePermissionAlert(ReadableMap params, Promise promise) {
+        try {
+            String domain = params.hasKey("domain") ? params.getString("domain") : "example-telehealth.com";
+            String url = params.hasKey("url") ? params.getString("url") : ("https://" + domain);
+            String permissionType = params.hasKey("permissionType") ? params.getString("permissionType") : "camera";
+            String trustLevel = params.hasKey("trustLevel") ? params.getString("trustLevel") : "UNKNOWN";
+            String browser = params.hasKey("browser") ? params.getString("browser") : "Google Chrome";
+            String explanation = params.hasKey("explanation") ? params.getString("explanation") :
+                    "This website is requesting permission to access your device hardware. Please review whether you trust this site.";
+
+            OverlayManager.getInstance(getReactApplicationContext()).showWebsitePermissionAlert(
+                    domain, url, permissionType, trustLevel, explanation, browser
+            );
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("SIMULATE_ALERT_ERROR", e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void dismissPermissionOverlay(Promise promise) {
+        try {
+            OverlayManager.getInstance(getReactApplicationContext()).dismissOverlay();
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("DISMISS_ERROR", e.getMessage());
+        }
+    }
 }

@@ -74,6 +74,14 @@ const DEFAULT_DETECTION_SUGGESTIONS = [
   'How do I report this sender?',
 ];
 
+const DEFAULT_PERMISSION_SUGGESTIONS = [
+  'Why did this website request this permission?',
+  'How do I revoke permissions in Chrome?',
+  'Can a website record me in the background?',
+  'How do I block permissions in Android Settings?',
+  'Is it safe to allow camera access for video calls?',
+];
+
 export const AssistantChatScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: AssistantChatRouteParams }, 'params'>>();
@@ -90,7 +98,11 @@ export const AssistantChatScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
   const [activeSuggestions, setActiveSuggestions] = useState<string[]>(
-    mode === 'detection_explanation' ? DEFAULT_DETECTION_SUGGESTIONS : DEFAULT_GENERAL_SUGGESTIONS,
+    detectionContext?.permissionType
+      ? DEFAULT_PERMISSION_SUGGESTIONS
+      : mode === 'detection_explanation'
+      ? DEFAULT_DETECTION_SUGGESTIONS
+      : DEFAULT_GENERAL_SUGGESTIONS,
   );
   const [isContextCollapsed, setIsContextCollapsed] = useState(false);
 
@@ -100,7 +112,13 @@ export const AssistantChatScreen: React.FC = () => {
   useEffect(() => {
     let initialGreetingText = '';
 
-    if (mode === 'detection_explanation' && detectionContext) {
+    if (detectionContext?.permissionType) {
+      initialGreetingText = `Hello! I'm your FraudShield Assistant. I see that ${
+        detectionContext.domain || 'a website'
+      } requested ${detectionContext.permissionType} permission (Trust: ${
+        detectionContext.trustLevel || 'UNVERIFIED'
+      }). Ask me about the risks, whether to allow or deny, or how to manage site permissions safely in Chrome and Android.`;
+    } else if (mode === 'detection_explanation' && detectionContext) {
       const isThreat = detectionContext.classification === 'FRAUD' || (detectionContext.riskScore || 0) >= 0.70;
       const scorePct = Math.round((detectionContext.riskScore || 0) * 100);
 
@@ -115,7 +133,9 @@ export const AssistantChatScreen: React.FC = () => {
       text: initialGreetingText,
       timestamp: Date.now(),
       suggestedFollowUps:
-        mode === 'detection_explanation'
+        detectionContext?.permissionType
+          ? DEFAULT_PERMISSION_SUGGESTIONS
+          : mode === 'detection_explanation'
           ? DEFAULT_DETECTION_SUGGESTIONS
           : DEFAULT_GENERAL_SUGGESTIONS,
     };
@@ -346,8 +366,8 @@ export const AssistantChatScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ─── Detection Context Banner (if in detection_explanation mode) ─ */}
-      {mode === 'detection_explanation' && detectionContext && (
+      {/* ─── Detection / Permission Context Banner ─────────────────────── */}
+      {detectionContext && (
         <View style={styles.detectionBanner}>
           <TouchableOpacity
             style={styles.detectionBannerHeader}
@@ -356,15 +376,27 @@ export const AssistantChatScreen: React.FC = () => {
             <View style={styles.detectionBannerTitleRow}>
               <Icon
                 name={
-                  (detectionContext.riskScore || 0) >= 0.70 ? 'AlertTriangle' : 'CheckCircle2'
+                  detectionContext.permissionType
+                    ? 'Lock'
+                    : (detectionContext.riskScore || 0) >= 0.70
+                    ? 'AlertTriangle'
+                    : 'CheckCircle2'
                 }
                 size={16}
-                color={(detectionContext.riskScore || 0) >= 0.70 ? '#DC2626' : '#059669'}
+                color={
+                  detectionContext.permissionType
+                    ? PRIMARY_COLOR
+                    : (detectionContext.riskScore || 0) >= 0.70
+                    ? '#DC2626'
+                    : '#059669'
+                }
                 strokeWidth={2.4}
                 style={{ marginRight: 6 }}
               />
               <Text style={styles.detectionBannerTitle}>
-                Referenced Detection ({detectionContext.source || 'Manual Scan'})
+                {detectionContext.permissionType
+                  ? `Website Permission: ${detectionContext.permissionType}`
+                  : `Referenced Detection (${detectionContext.source || 'Manual Scan'})`}
               </Text>
             </View>
 
@@ -372,18 +404,27 @@ export const AssistantChatScreen: React.FC = () => {
               <View
                 style={[
                   styles.detectionScoreBadge,
-                  (detectionContext.riskScore || 0) >= 0.70
+                  detectionContext.permissionType
+                    ? detectionContext.trustLevel === 'SUSPICIOUS'
+                      ? styles.badgeDanger
+                      : styles.badgeSafe
+                    : (detectionContext.riskScore || 0) >= 0.70
                     ? styles.badgeDanger
                     : styles.badgeSafe,
                 ]}>
                 <Text
-                  style={[
-                    styles.detectionScoreBadgeText,
-                    (detectionContext.riskScore || 0) >= 0.70
+                  style={
+                    detectionContext.permissionType
+                      ? detectionContext.trustLevel === 'SUSPICIOUS'
+                        ? styles.badgeDangerText
+                        : styles.badgeSafeText
+                      : (detectionContext.riskScore || 0) >= 0.70
                       ? styles.badgeDangerText
-                      : styles.badgeSafeText,
-                  ]}>
-                  {Math.round((detectionContext.riskScore || 0) * 100)}% Risk
+                      : styles.badgeSafeText
+                  }>
+                  {detectionContext.permissionType
+                    ? (detectionContext.trustLevel || 'UNVERIFIED')
+                    : `${Math.round((detectionContext.riskScore || 0) * 100)}% Risk`}
                 </Text>
               </View>
               <Icon
@@ -398,19 +439,28 @@ export const AssistantChatScreen: React.FC = () => {
 
           {!isContextCollapsed && (
             <View style={styles.detectionBannerBody}>
-              {!!detectionContext.safePreview && (
+              {detectionContext.permissionType ? (
                 <Text style={styles.detectionPreviewText} numberOfLines={2}>
-                  "{detectionContext.safePreview}"
+                  {detectionContext.domain ? `Website: ${detectionContext.domain}` : ''}
+                  {detectionContext.safePreview ? ` — ${detectionContext.safePreview}` : ''}
                 </Text>
-              )}
-              {detectionContext.reasons && detectionContext.reasons.length > 0 && (
-                <View style={styles.reasonsList}>
-                  {detectionContext.reasons.slice(0, 2).map((r, i) => (
-                    <Text key={i} style={styles.reasonBullet} numberOfLines={1}>
-                      • {r}
+              ) : (
+                <>
+                  {!!detectionContext.safePreview && (
+                    <Text style={styles.detectionPreviewText} numberOfLines={2}>
+                      "{detectionContext.safePreview}"
                     </Text>
-                  ))}
-                </View>
+                  )}
+                  {detectionContext.reasons && detectionContext.reasons.length > 0 && (
+                    <View style={styles.reasonsList}>
+                      {detectionContext.reasons.slice(0, 2).map((r, i) => (
+                        <Text key={i} style={styles.reasonBullet} numberOfLines={1}>
+                          • {r}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </>
               )}
             </View>
           )}
@@ -440,7 +490,7 @@ export const AssistantChatScreen: React.FC = () => {
                   <Text style={styles.typingText}>FraudShield is analyzing...</Text>
                 </View>
               </View>
-            ) : null
+            ) : undefined
           }
         />
 
